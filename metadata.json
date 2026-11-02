@@ -1,0 +1,6 @@
+{
+  "name": "NARMER · Gabinete Simbólico",
+  "description": "Espacio editorial de exploración simbólica, Tarot evolutivo y Psicoastrología arquetípica. Mirar hacia adentro a través del símbolo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

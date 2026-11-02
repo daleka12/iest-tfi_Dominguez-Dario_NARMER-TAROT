@@ -1,0 +1,158 @@
+:root {
+  /* Paleta Oficial NARMER */
+  --color-violeta-profundo: #2A0E34;  /* Identidad principal */
+  --color-azul-noche: #0D1B2A;        /* Universo / Astrología */
+  --color-turquesa: #00B3A4;          /* Elemento distintivo */
+  --color-crema-dorado: #E8D7A6;      /* Textos y detalles */
+  --color-gris-piedra: #7A7A7A;       /* Referencia egipcia */
+
+  /* Variantes armónicas */
+  --color-violeta-dark: #1E0926;
+  --color-violeta-glow: rgba(42, 14, 52, 0.6);
+  --color-azul-profundo: #070F18;
+  --color-turquesa-glow: rgba(0, 179, 164, 0.4);
+  --color-crema-muted: rgba(232, 215, 166, 0.75);
+  --color-piedra-subtle: rgba(122, 122, 122, 0.25);
+}
+
+html {
+  scroll-padding-top: 5.5rem;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.015em;
+  background-color: #0D1B2A;
+  color: #E8D7A6;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+section[id] {
+  scroll-margin-top: 5rem;
+}
+
+h1, h2, h3, .font-serif-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-feature-settings: "liga" 1, "dlig" 1;
+  color: #E8D7A6;
+}
+
+.font-display-italiana {
+  font-family: 'Italiana', 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-title-classic {
+  font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-handwritten {
+  font-family: 'Reenie Beanie', cursive;
+}
+
+.font-clean, .font-body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* Gradiente dorado editorial para títulos clásicos */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #F9F1DC 0%, #E8D7A6 55%, #C5AA7A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #E8D7A6;
+}
+
+/* Textura estelar sutil */
+.stars-overlay {
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, rgba(232, 215, 166, 0.45), transparent),
+    radial-gradient(1px 1px at 90px 80px, rgba(0, 179, 164, 0.35), transparent),
+    radial-gradient(1.5px 1.5px at 160px 120px, rgba(232, 215, 166, 0.3), transparent);
+  background-size: 220px 220px;
+}
+
+/* Subtle editorial paper grain overlay */
+.paper-grain {
+  background-image: radial-gradient(rgba(232, 215, 166, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Bordes en crema dorado y gris piedra egipcia */
+.border-narmer-crema {
+  border-color: rgba(232, 215, 166, 0.25);
+}
+
+.border-narmer-turquesa {
+  border-color: rgba(0, 179, 164, 0.45);
+}
+
+.border-narmer-piedra {
+  border-color: rgba(122, 122, 122, 0.3);
+}
+
+/* Gentle atmospheric slow float */
+@keyframes breathingFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0.4deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-0.3deg);
+  }
+}
+
+.animate-breathing-float {
+  animation: breathingFloat 9s ease-in-out infinite;
+}
+
+/* Subtle light sweep across physical card */
+@keyframes lightSweep {
+  0% {
+    opacity: 0.15;
+    transform: translateX(-120%) rotate(25deg);
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0.15;
+    transform: translateX(120%) rotate(25deg);
+  }
+}
+
+.card-light-sweep {
+  animation: lightSweep 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Custom orbital cursor (only on fine pointer devices) */
+@media (pointer: fine) {
+  .custom-cursor-active {
+    cursor: crosshair;
+  }
+}
+
+/* Selection */
+::selection {
+  background-color: #2A0E34;
+  color: #E8D7A6;
+}
+
