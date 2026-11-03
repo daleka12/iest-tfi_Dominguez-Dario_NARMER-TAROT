@@ -5601,7 +5601,7 @@ modules["src/services/supabase.ts"] = function(require, module, exports) {
  * 4. `bookings`     -> Reservas de sesiones con envío de notificación a dalekavideos@gmail.com
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isVideoAsset = exports.getSupabaseStorageUrl = exports.saveSupabaseCredentialsLocal = exports.isSupabaseConfigured = exports.SUPABASE_ANON_KEY = exports.SUPABASE_URL = exports.getSupabaseAnonKey = exports.getSupabaseUrl = exports.OWNER_NOTIFICATION_EMAIL = void 0;
+exports.isVideoAsset = exports.getSupabaseStorageUrl = exports.saveSupabaseCredentialsLocal = exports.isSupabaseConfigured = exports.SUPABASE_ANON_KEY = exports.SUPABASE_URL = exports.getSupabaseAnonKey = exports.getSupabaseUrl = exports.DEFAULT_SUPABASE_ANON_KEY = exports.DEFAULT_SUPABASE_URL = exports.OWNER_NOTIFICATION_EMAIL = void 0;
 exports.getLocalRecords = getLocalRecords;
 exports.appendLocalRecord = appendLocalRecord;
 exports.fetchSupabaseTable = fetchSupabaseTable;
@@ -5634,9 +5634,11 @@ const getEnvVar = (key) => {
     }
     return '';
 };
-const getSupabaseUrl = () => getEnvVar('VITE_SUPABASE_URL');
+exports.DEFAULT_SUPABASE_URL = 'https://goztukplpqyjjwyxidku.supabase.co';
+exports.DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_rxUGsgEcszvKQSLAb6A3hg_vqdbzsfu';
+const getSupabaseUrl = () => getEnvVar('VITE_SUPABASE_URL') || exports.DEFAULT_SUPABASE_URL;
 exports.getSupabaseUrl = getSupabaseUrl;
-const getSupabaseAnonKey = () => getEnvVar('VITE_SUPABASE_ANON_KEY');
+const getSupabaseAnonKey = () => getEnvVar('VITE_SUPABASE_ANON_KEY') || exports.DEFAULT_SUPABASE_ANON_KEY;
 exports.getSupabaseAnonKey = getSupabaseAnonKey;
 exports.SUPABASE_URL = (0, exports.getSupabaseUrl)();
 exports.SUPABASE_ANON_KEY = (0, exports.getSupabaseAnonKey)();

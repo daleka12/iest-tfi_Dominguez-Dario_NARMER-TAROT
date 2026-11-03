@@ -54,3 +54,4 @@ indexHtml = indexHtml.replace('</head>', envScript);
 fs.writeFileSync('dist/index.html', indexHtml, 'utf8');
 
 console.log('Build completado en dist/ con soporte de variables VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
+

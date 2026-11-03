@@ -3,6 +3,8 @@
   publish = "dist"
 
 [build.environment]
+  VITE_SUPABASE_URL = "https://goztukplpqyjjwyxidku.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "sb_publishable_rxUGsgEcszvKQSLAb6A3hg_vqdbzsfu"
   VITE_OWNER_EMAIL = "dalekavideos@gmail.com"
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_ANON_KEY,VITE_SUPABASE_URL"
 

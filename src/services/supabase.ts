@@ -35,8 +35,11 @@ const getEnvVar = (key: string): string => {
   return '';
 };
 
-export const getSupabaseUrl = (): string => getEnvVar('VITE_SUPABASE_URL');
-export const getSupabaseAnonKey = (): string => getEnvVar('VITE_SUPABASE_ANON_KEY');
+export const DEFAULT_SUPABASE_URL = 'https://goztukplpqyjjwyxidku.supabase.co';
+export const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_rxUGsgEcszvKQSLAb6A3hg_vqdbzsfu';
+
+export const getSupabaseUrl = (): string => getEnvVar('VITE_SUPABASE_URL') || DEFAULT_SUPABASE_URL;
+export const getSupabaseAnonKey = (): string => getEnvVar('VITE_SUPABASE_ANON_KEY') || DEFAULT_SUPABASE_ANON_KEY;
 
 export const SUPABASE_URL = getSupabaseUrl();
 export const SUPABASE_ANON_KEY = getSupabaseAnonKey();
