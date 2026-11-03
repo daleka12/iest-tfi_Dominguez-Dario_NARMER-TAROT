@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "mkdir -p dist/src dist/cards && cp index.html dist/ && cp -r src/* dist/src/ && cp cards/*.jpg cards/*.png dist/cards/",
+    "build": "node scripts/build-static.mjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"

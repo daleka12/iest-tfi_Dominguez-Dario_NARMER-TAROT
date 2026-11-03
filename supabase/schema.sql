@@ -91,3 +91,4 @@ CREATE POLICY "Insercion publica de reservas" ON public.bookings FOR INSERT WITH
 
 DROP POLICY IF EXISTS "Lectura de reservas" ON public.bookings;
 CREATE POLICY "Lectura de reservas" ON public.bookings FOR SELECT USING (true);
+
