@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, CheckCircle2, Send, Feather } from 'lucide-react';
+import { X, Calendar, Clock, CheckCircle2, Send, Feather, Mail } from 'lucide-react';
 import { MagneticButton } from '../ui/MagneticButton';
-import { insertSupabaseRecord } from '../../services/supabase';
+import {
+  insertSupabaseRecord,
+  appendLocalRecord,
+  sendBookingEmailToOwner,
+  buildBookingMailtoUrl,
+  OWNER_NOTIFICATION_EMAIL,
+  BookingEmailPayload,
+} from '../../services/supabase';
 
 interface BookingEditorialModalProps {
   isOpen: boolean;
@@ -30,6 +37,8 @@ export const BookingEditorialModal: React.FC<BookingEditorialModalProps> = ({
     message: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [emailSentStatus, setEmailSentStatus] = useState<'sending' | 'sent' | 'ready'>('ready');
+  const [lastBookingPayload, setLastBookingPayload] = useState<BookingEmailPayload | null>(null);
 
   useEffect(() => {
     if (!initialSession) return;
@@ -49,20 +58,44 @@ export const BookingEditorialModal: React.FC<BookingEditorialModalProps> = ({
 
   const sessionOptions = SESSION_OPTIONS;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-
-    // Registro opcional y no bloqueante en Supabase Database si está configurado
-    void insertSupabaseRecord('bookings', {
+    const createdAt = new Date().toISOString();
+    const payload: BookingEmailPayload = {
       session_type: session,
       client_name: formData.name.trim(),
       client_email: formData.email.trim(),
-      preferred_date: formData.date || null,
+      preferred_date: formData.date || '',
       preferred_time: formData.time,
-      notes: formData.message.trim() || null,
-      created_at: new Date().toISOString(),
+      notes: formData.message.trim(),
+      created_at: createdAt,
+    };
+
+    setLastBookingPayload(payload);
+    setSubmitted(true);
+    setEmailSentStatus('sending');
+
+    // 1. Respaldo local inmediato
+    appendLocalRecord('narmer_local_bookings', {
+      ...payload,
+      recipient_email: OWNER_NOTIFICATION_EMAIL,
     });
+
+    // 2. Guardar en Supabase Database (`bookings`)
+    void insertSupabaseRecord('bookings', {
+      session_type: payload.session_type,
+      client_name: payload.client_name,
+      client_email: payload.client_email,
+      preferred_date: payload.preferred_date || null,
+      preferred_time: payload.preferred_time,
+      notes: payload.notes || null,
+      recipient_email: OWNER_NOTIFICATION_EMAIL,
+      created_at: payload.created_at,
+    });
+
+    // 3. Enviar notificación por correo electrónico a dalekavideos@gmail.com
+    const mailResult = await sendBookingEmailToOwner(payload);
+    setEmailSentStatus(mailResult.ok ? 'sent' : 'ready');
   };
 
   const whatsappText = encodeURIComponent(
@@ -102,14 +135,29 @@ export const BookingEditorialModal: React.FC<BookingEditorialModalProps> = ({
               <div>Consultante: <span className="text-[#E8D7A6] font-semibold">{formData.name}</span></div>
               <div>Correo: <span className="text-[#E8D7A6] font-semibold">{formData.email}</span></div>
               <div>Fecha tentativa: <span className="text-[#00B3A4]">{formData.date || 'A coordinar'} · {formData.time}</span></div>
+              <div>
+                Notificación enviada a:{' '}
+                <span className="text-[#00B3A4] font-semibold">{OWNER_NOTIFICATION_EMAIL}</span>
+                {emailSentStatus === 'sending' && <span className="ml-2 text-[#E8D7A6]/60">(Enviando…)</span>}
+                {emailSentStatus === 'sent' && <span className="ml-2 text-[#00B3A4]">✓ Enviado</span>}
+              </div>
             </div>
 
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
+              {lastBookingPayload && (
+                <a
+                  href={buildBookingMailtoUrl(lastBookingPayload)}
+                  className="w-full sm:w-auto px-5 py-3 border border-[#00B3A4] bg-[#160A20] hover:bg-[#2A0E34] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.18em] transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]"
+                >
+                  <Mail className="w-3.5 h-3.5 text-[#00B3A4]" />
+                  <span>Enviar copia a {OWNER_NOTIFICATION_EMAIL}</span>
+                </a>
+              )}
               <a
                 href={`https://wa.me/5493516429757?text=${whatsappText}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto px-6 py-3 border border-[#00B3A4] bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]"
+                className="w-full sm:w-auto px-5 py-3 border border-[#00B3A4] bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.18em] transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]"
               >
                 <Send className="w-3.5 h-3.5 text-[#00B3A4]" />
                 <span>Confirmar por WhatsApp</span>
@@ -119,7 +167,7 @@ export const BookingEditorialModal: React.FC<BookingEditorialModalProps> = ({
                   setSubmitted(false);
                   onClose();
                 }}
-                className="w-full sm:w-auto px-6 py-3 border border-[#7A7A7A]/40 text-xs font-clean uppercase tracking-[0.2em] text-[#E8D7A6]/80 hover:text-[#00B3A4]"
+                className="w-full sm:w-auto px-5 py-3 border border-[#7A7A7A]/40 text-xs font-clean uppercase tracking-[0.18em] text-[#E8D7A6]/80 hover:text-[#00B3A4]"
               >
                 Cerrar
               </button>

@@ -322,6 +322,8 @@ const BookingEditorialModal = ({ isOpen, onClose, initialSession = '01 · TAROT 
         message: '',
     });
     const [submitted, setSubmitted] = (0, react_1.useState)(false);
+    const [emailSentStatus, setEmailSentStatus] = (0, react_1.useState)('ready');
+    const [lastBookingPayload, setLastBookingPayload] = (0, react_1.useState)(null);
     (0, react_1.useEffect)(() => {
         if (!initialSession)
             return;
@@ -336,19 +338,40 @@ const BookingEditorialModal = ({ isOpen, onClose, initialSession = '01 · TAROT 
     if (!isOpen)
         return null;
     const sessionOptions = SESSION_OPTIONS;
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setSubmitted(true);
-        // Registro opcional y no bloqueante en Supabase Database si está configurado
-        void (0, supabase_1.insertSupabaseRecord)('bookings', {
+        const createdAt = new Date().toISOString();
+        const payload = {
             session_type: session,
             client_name: formData.name.trim(),
             client_email: formData.email.trim(),
-            preferred_date: formData.date || null,
+            preferred_date: formData.date || '',
             preferred_time: formData.time,
-            notes: formData.message.trim() || null,
-            created_at: new Date().toISOString(),
+            notes: formData.message.trim(),
+            created_at: createdAt,
+        };
+        setLastBookingPayload(payload);
+        setSubmitted(true);
+        setEmailSentStatus('sending');
+        // 1. Respaldo local inmediato
+        (0, supabase_1.appendLocalRecord)('narmer_local_bookings', {
+            ...payload,
+            recipient_email: supabase_1.OWNER_NOTIFICATION_EMAIL,
         });
+        // 2. Guardar en Supabase Database (`bookings`)
+        void (0, supabase_1.insertSupabaseRecord)('bookings', {
+            session_type: payload.session_type,
+            client_name: payload.client_name,
+            client_email: payload.client_email,
+            preferred_date: payload.preferred_date || null,
+            preferred_time: payload.preferred_time,
+            notes: payload.notes || null,
+            recipient_email: supabase_1.OWNER_NOTIFICATION_EMAIL,
+            created_at: payload.created_at,
+        });
+        // 3. Enviar notificación por correo electrónico a dalekavideos@gmail.com
+        const mailResult = await (0, supabase_1.sendBookingEmailToOwner)(payload);
+        setEmailSentStatus(mailResult.ok ? 'sent' : 'ready');
     };
     const whatsappText = encodeURIComponent(`Hola Narmer, quisiera coordinar la sesión de *${session}* a nombre de ${formData.name}. Fecha tentativa: ${formData.date} a las ${formData.time}. Nota: ${formData.message || 'Sin notas adicionales'}.`);
     return (react_1.default.createElement("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto" },
@@ -379,15 +402,26 @@ const BookingEditorialModal = ({ isOpen, onClose, initialSession = '01 · TAROT 
                         react_1.default.createElement("span", { className: "text-[#00B3A4]" },
                             formData.date || 'A coordinar',
                             " \u00B7 ",
-                            formData.time))),
-                react_1.default.createElement("div", { className: "pt-2 flex flex-col sm:flex-row items-center justify-center gap-3" },
-                    react_1.default.createElement("a", { href: `https://wa.me/5493516429757?text=${whatsappText}`, target: "_blank", rel: "noopener noreferrer", className: "w-full sm:w-auto px-6 py-3 border border-[#00B3A4] bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]" },
+                            formData.time)),
+                    react_1.default.createElement("div", null,
+                        "Notificaci\u00F3n enviada a:",
+                        ' ',
+                        react_1.default.createElement("span", { className: "text-[#00B3A4] font-semibold" }, supabase_1.OWNER_NOTIFICATION_EMAIL),
+                        emailSentStatus === 'sending' && react_1.default.createElement("span", { className: "ml-2 text-[#E8D7A6]/60" }, "(Enviando\u2026)"),
+                        emailSentStatus === 'sent' && react_1.default.createElement("span", { className: "ml-2 text-[#00B3A4]" }, "\u2713 Enviado"))),
+                react_1.default.createElement("div", { className: "pt-2 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3" },
+                    lastBookingPayload && (react_1.default.createElement("a", { href: (0, supabase_1.buildBookingMailtoUrl)(lastBookingPayload), className: "w-full sm:w-auto px-5 py-3 border border-[#00B3A4] bg-[#160A20] hover:bg-[#2A0E34] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.18em] transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]" },
+                        react_1.default.createElement(lucide_react_1.Mail, { className: "w-3.5 h-3.5 text-[#00B3A4]" }),
+                        react_1.default.createElement("span", null,
+                            "Enviar copia a ",
+                            supabase_1.OWNER_NOTIFICATION_EMAIL))),
+                    react_1.default.createElement("a", { href: `https://wa.me/5493516429757?text=${whatsappText}`, target: "_blank", rel: "noopener noreferrer", className: "w-full sm:w-auto px-5 py-3 border border-[#00B3A4] bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.18em] transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]" },
                         react_1.default.createElement(lucide_react_1.Send, { className: "w-3.5 h-3.5 text-[#00B3A4]" }),
                         react_1.default.createElement("span", null, "Confirmar por WhatsApp")),
                     react_1.default.createElement("button", { onClick: () => {
                             setSubmitted(false);
                             onClose();
-                        }, className: "w-full sm:w-auto px-6 py-3 border border-[#7A7A7A]/40 text-xs font-clean uppercase tracking-[0.2em] text-[#E8D7A6]/80 hover:text-[#00B3A4]" }, "Cerrar")))) : (react_1.default.createElement("form", { onSubmit: handleSubmit, className: "space-y-6" },
+                        }, className: "w-full sm:w-auto px-5 py-3 border border-[#7A7A7A]/40 text-xs font-clean uppercase tracking-[0.18em] text-[#E8D7A6]/80 hover:text-[#00B3A4]" }, "Cerrar")))) : (react_1.default.createElement("form", { onSubmit: handleSubmit, className: "space-y-6" },
                 react_1.default.createElement("div", null,
                     react_1.default.createElement("span", { className: "font-mono text-[9px] tracking-[0.3em] uppercase text-[#00B3A4] block mb-1 font-bold" }, "Gabinete Narmer \u00B7 Reserva"),
                     react_1.default.createElement("h3", { className: "font-editorial text-3xl text-[#E8D7A6] font-normal" }, "Abrir un espacio de consulta."),
@@ -2165,27 +2199,157 @@ const ESSAYS = [
     },
 ];
 const CuadernoSimbolos = () => {
-    const [articles, setArticles] = (0, react_1.useState)(ESSAYS);
+    const [articles, setArticles] = (0, react_1.useState)(() => {
+        const localSaved = (0, supabase_1.getLocalRecords)('narmer_local_essays');
+        return [...ESSAYS, ...localSaved];
+    });
     const [selectedArticle, setSelectedArticle] = (0, react_1.useState)(null);
+    const [isNewEssayOpen, setIsNewEssayOpen] = (0, react_1.useState)(false);
+    const [savingEssay, setSavingEssay] = (0, react_1.useState)(false);
+    const [essayNotice, setEssayNotice] = (0, react_1.useState)(null);
+    const [essayForm, setEssayForm] = (0, react_1.useState)({
+        category: 'Tarot',
+        title: '',
+        subtitle: '',
+        readTime: '5 min',
+        date: 'Bitácora 2026',
+        excerpt: '',
+        body: '',
+    });
+    // Notas editoriales al margen dentro de cada ensayo
+    const [marginalNotes, setMarginalNotes] = (0, react_1.useState)(() => (0, supabase_1.getLocalRecords)('narmer_local_essay_notes'));
+    const [noteAuthor, setNoteAuthor] = (0, react_1.useState)('');
+    const [noteContent, setNoteContent] = (0, react_1.useState)('');
+    const [savingNote, setSavingNote] = (0, react_1.useState)(false);
     (0, react_1.useEffect)(() => {
         let active = true;
         (0, supabase_1.fetchSupabaseTable)('essays', 'select=*&order=number.asc').then((remoteRows) => {
             if (!active || !remoteRows || remoteRows.length === 0)
                 return;
-            // Combinar sin duplicar información por `id` manteniendo la estructura original
             const byId = new Map();
             ESSAYS.forEach((item) => byId.set(item.id, item));
+            const localSaved = (0, supabase_1.getLocalRecords)('narmer_local_essays');
+            localSaved.forEach((item) => byId.set(item.id, item));
             remoteRows.forEach((row) => {
-                if (row.id && row.title && Array.isArray(row.fullEssay)) {
-                    byId.set(row.id, { ...byId.get(row.id), ...row });
+                const parsedParagraphs = Array.isArray(row.fullEssay)
+                    ? row.fullEssay
+                    : Array.isArray(row.full_essay)
+                        ? row.full_essay
+                        : typeof row.full_essay === 'string'
+                            ? row.full_essay.split('\n\n').filter(Boolean)
+                            : null;
+                if (row.id && row.title && parsedParagraphs) {
+                    byId.set(String(row.id), {
+                        id: String(row.id),
+                        category: row.category || 'Tarot',
+                        number: String(row.number || `N° 0${byId.size + 1}`),
+                        title: String(row.title),
+                        subtitle: String(row.subtitle || ''),
+                        readTime: String(row.readTime || row.read_time || '5 min'),
+                        date: String(row.date || 'Bitácora 2026'),
+                        excerpt: String(row.excerpt || ''),
+                        fullEssay: parsedParagraphs,
+                        mediaUrl: row.mediaUrl || row.media_url || undefined,
+                    });
                 }
             });
             setArticles(Array.from(byId.values()));
+        });
+        (0, supabase_1.fetchSupabaseTable)('essay_notes', 'select=*&order=created_at.desc').then((remoteNotes) => {
+            if (!active || !remoteNotes || remoteNotes.length === 0)
+                return;
+            const byId = new Map();
+            (0, supabase_1.getLocalRecords)('narmer_local_essay_notes').forEach((n) => byId.set(n.id, n));
+            remoteNotes.forEach((n) => {
+                if (n.id && n.essay_id && n.note)
+                    byId.set(n.id, n);
+            });
+            setMarginalNotes(Array.from(byId.values()));
         });
         return () => {
             active = false;
         };
     }, []);
+    const handleCreateEssay = async (e) => {
+        e.preventDefault();
+        if (!essayForm.title.trim() || !essayForm.body.trim())
+            return;
+        setSavingEssay(true);
+        const nextNumber = `N° ${String(articles.length + 1).padStart(2, '0')}`;
+        const paragraphs = essayForm.body
+            .split(/\n+/)
+            .map((p) => p.trim())
+            .filter(Boolean);
+        const autoExcerpt = essayForm.excerpt.trim() ||
+            (paragraphs[0] ? paragraphs[0].slice(0, 165) + (paragraphs[0].length > 165 ? '…' : '') : '');
+        const newArticle = {
+            id: `nota-${Date.now()}`,
+            category: essayForm.category,
+            number: nextNumber,
+            title: essayForm.title.trim(),
+            subtitle: essayForm.subtitle.trim() || 'Apunte del Gabinete de Interpretación Simbólica.',
+            readTime: essayForm.readTime.trim() || '5 min',
+            date: essayForm.date.trim() || 'Bitácora 2026',
+            excerpt: autoExcerpt,
+            fullEssay: paragraphs,
+        };
+        (0, supabase_1.appendLocalRecord)('narmer_local_essays', newArticle);
+        setArticles((prev) => [...prev, newArticle]);
+        const res = await (0, supabase_1.insertSupabaseRecord)('essays', {
+            id: newArticle.id,
+            category: newArticle.category,
+            number: newArticle.number,
+            title: newArticle.title,
+            subtitle: newArticle.subtitle,
+            read_time: newArticle.readTime,
+            date: newArticle.date,
+            excerpt: newArticle.excerpt,
+            full_essay: newArticle.fullEssay,
+            created_at: new Date().toISOString(),
+        });
+        setSavingEssay(false);
+        setEssayNotice(res.ok
+            ? 'Nota editorial guardada en Supabase y publicada en el Cuaderno.'
+            : 'Nota editorial publicada y guardada en el Cuaderno de Símbolos.');
+        setTimeout(() => {
+            setIsNewEssayOpen(false);
+            setEssayNotice(null);
+            setEssayForm({
+                category: 'Tarot',
+                title: '',
+                subtitle: '',
+                readTime: '5 min',
+                date: 'Bitácora 2026',
+                excerpt: '',
+                body: '',
+            });
+        }, 1400);
+    };
+    const handleAddMarginalNote = async (e) => {
+        e.preventDefault();
+        if (!selectedArticle || !noteContent.trim())
+            return;
+        setSavingNote(true);
+        const newNote = {
+            id: `apunte-${Date.now()}`,
+            essay_id: selectedArticle.id,
+            author: noteAuthor.trim() || 'Nota de Lectura',
+            note: noteContent.trim(),
+            created_at: new Date().toISOString(),
+        };
+        (0, supabase_1.appendLocalRecord)('narmer_local_essay_notes', newNote);
+        setMarginalNotes((prev) => [newNote, ...prev]);
+        await (0, supabase_1.insertSupabaseRecord)('essay_notes', {
+            id: newNote.id,
+            essay_id: newNote.essay_id,
+            author: newNote.author,
+            note: newNote.note,
+            created_at: newNote.created_at,
+        });
+        setSavingNote(false);
+        setNoteAuthor('');
+        setNoteContent('');
+    };
     return (react_1.default.createElement("section", { id: "cuaderno", className: "py-28 px-6 sm:px-12 md:px-20 bg-[#0D1B2A] relative overflow-hidden border-t border-[#7A7A7A]/25" },
         react_1.default.createElement("div", { className: "absolute inset-0 paper-grain opacity-35 pointer-events-none" }),
         react_1.default.createElement("div", { className: "max-w-6xl mx-auto relative z-10" },
@@ -2196,7 +2360,11 @@ const CuadernoSimbolos = () => {
                         react_1.default.createElement("span", { className: "font-mono text-[10px] tracking-[0.3em] uppercase text-[#00B3A4]" }, "Cap\u00EDtulo V \u00B7 Ensayos & Apuntes")),
                     react_1.default.createElement(EditorialBlurredHeading_1.EditorialBlurredHeading, { as: "h2", delay: 0.12, duration: 1.2, blurAmount: 12, className: "font-editorial text-4xl sm:text-5xl md:text-6xl text-[#E8D7A6] font-normal leading-[1.1]" }, "Cuaderno de s\u00EDmbolos."),
                     react_1.default.createElement("p", { className: "mt-4 font-editorial text-base sm:text-lg text-[#E8D7A6]/80 font-light leading-relaxed max-w-2xl" }, "P\u00E1ginas de reflexi\u00F3n sobre mitolog\u00EDa, arquetipos lunares y la psicolog\u00EDa de la mirada interior."),
-                    react_1.default.createElement("div", { className: "mt-5 font-mono text-xs text-[#00B3A4] tracking-widest uppercase" }, "REVISTA EDITORIAL \u00B7 NARMER")),
+                    react_1.default.createElement("div", { className: "mt-5 flex flex-wrap items-center gap-4" },
+                        react_1.default.createElement("span", { className: "font-mono text-xs text-[#00B3A4] tracking-widest uppercase" }, "REVISTA EDITORIAL \u00B7 NARMER"),
+                        react_1.default.createElement("button", { onClick: () => setIsNewEssayOpen(true), className: "px-4 py-2 rounded-full border border-[#00B3A4]/60 bg-[#2A0E34]/50 hover:bg-[#2A0E34] text-[#E8D7A6] font-clean text-[10px] tracking-[0.18em] uppercase transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]" },
+                            react_1.default.createElement(lucide_react_1.Feather, { className: "w-3.5 h-3.5 text-[#00B3A4]" }),
+                            react_1.default.createElement("span", null, "Escribir Nota Editorial")))),
                 react_1.default.createElement("div", { className: "lg:col-span-5 flex justify-center lg:justify-end" },
                     react_1.default.createElement("div", { className: "w-full max-w-[300px] sm:max-w-[350px] aspect-square rounded-2xl overflow-hidden border border-[#00B3A4]/40 bg-[#08121D] shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_25px_rgba(0,179,164,0.2)]" },
                         react_1.default.createElement(SupabaseMedia_1.SupabaseMedia, { bucket: "essays", storagePath: "ensayos-apuntes.jpg", localFallbackSrc: "./cards/ensayos-apuntes.jpg?v=2", localStorageKey: "narmer_ensayos_header_img_v2", alt: "Ensayos & Apuntes \u00B7 Narmer Tarot y Psicoastrolog\u00EDa", mediaClassName: "w-full h-full object-contain rounded-2xl select-none", fallbackContent: react_1.default.createElement("img", { src: "./cards/ensayos-apuntes.jpg?v=2", alt: "Ensayos & Apuntes \u00B7 Narmer Tarot y Psicoastrolog\u00EDa", className: "w-full h-full object-contain rounded-2xl select-none" }) })))),
@@ -2235,9 +2403,74 @@ const CuadernoSimbolos = () => {
                 react_1.default.createElement("h3", { className: "font-editorial text-3xl sm:text-4xl text-[#E8D7A6] font-normal leading-tight" }, selectedArticle.title),
                 react_1.default.createElement("p", { className: "font-editorial italic text-lg text-[#00B3A4] mt-2 mb-8" }, selectedArticle.subtitle),
                 react_1.default.createElement("div", { className: "space-y-6 font-editorial text-base sm:text-lg text-[#E8D7A6]/90 leading-relaxed font-light border-t border-[#7A7A7A]/25 pt-8" }, selectedArticle.fullEssay.map((para, i) => (react_1.default.createElement("p", { key: i }, para)))),
-                react_1.default.createElement("div", { className: "mt-12 pt-6 border-t border-[#7A7A7A]/25 flex items-center justify-between text-xs font-mono text-[#7A7A7A]" },
+                react_1.default.createElement("div", { className: "mt-10 pt-8 border-t border-[#00B3A4]/30 space-y-5" },
+                    react_1.default.createElement("div", { className: "flex items-center justify-between" },
+                        react_1.default.createElement("span", { className: "font-mono text-[10px] tracking-[0.25em] uppercase text-[#00B3A4] flex items-center gap-1.5 font-bold" },
+                            react_1.default.createElement(lucide_react_1.Sparkles, { className: "w-3 h-3" }),
+                            " Notas Editoriales & Apuntes al Margen"),
+                        react_1.default.createElement("span", { className: "font-mono text-[10px] text-[#7A7A7A]" },
+                            marginalNotes.filter((n) => n.essay_id === selectedArticle.id).length,
+                            " apuntes")),
+                    marginalNotes.filter((n) => n.essay_id === selectedArticle.id).length > 0 && (react_1.default.createElement("div", { className: "space-y-3 max-h-48 overflow-y-auto pr-1" }, marginalNotes
+                        .filter((n) => n.essay_id === selectedArticle.id)
+                        .map((n) => (react_1.default.createElement("div", { key: n.id, className: "p-3.5 rounded-lg border border-[#E8D7A6]/15 bg-[#08121D] text-xs space-y-1" },
+                        react_1.default.createElement("div", { className: "flex items-center justify-between font-mono text-[10px] text-[#00B3A4]" },
+                            react_1.default.createElement("span", null, n.author),
+                            react_1.default.createElement("span", { className: "text-[#7A7A7A]" }, new Date(n.created_at).toLocaleDateString('es-AR'))),
+                        react_1.default.createElement("p", { className: "font-editorial text-sm text-[#E8D7A6]/90 leading-relaxed" }, n.note)))))),
+                    react_1.default.createElement("form", { onSubmit: handleAddMarginalNote, className: "space-y-3 pt-2" },
+                        react_1.default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3" },
+                            react_1.default.createElement("input", { type: "text", value: noteAuthor, onChange: (e) => setNoteAuthor(e.target.value), placeholder: "Autor / Firma (ej. Narmer)", className: "bg-[#070F18] border border-[#7A7A7A]/35 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" }),
+                            react_1.default.createElement("input", { type: "text", required: true, value: noteContent, onChange: (e) => setNoteContent(e.target.value), placeholder: "Agregar apunte o nota editorial sobre este ensayo...", className: "sm:col-span-2 bg-[#070F18] border border-[#7A7A7A]/35 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" })),
+                        react_1.default.createElement("div", { className: "flex justify-end" },
+                            react_1.default.createElement("button", { type: "submit", disabled: savingNote, className: "px-4 py-2 border border-[#00B3A4]/70 bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-[10px] uppercase tracking-[0.2em] transition-colors rounded flex items-center gap-1.5" },
+                                react_1.default.createElement(lucide_react_1.Feather, { className: "w-3 h-3 text-[#00B3A4]" }),
+                                react_1.default.createElement("span", null, savingNote ? 'Guardando...' : 'Guardar Apunte'))))),
+                react_1.default.createElement("div", { className: "mt-10 pt-6 border-t border-[#7A7A7A]/25 flex items-center justify-between text-xs font-mono text-[#7A7A7A]" },
                     react_1.default.createElement("span", null, "Publicado en el Cuaderno de S\u00EDmbolos"),
-                    react_1.default.createElement("button", { onClick: () => setSelectedArticle(null), className: "text-[#00B3A4] hover:underline uppercase tracking-wider font-semibold" }, "Cerrar lectura")))))));
+                    react_1.default.createElement("button", { onClick: () => setSelectedArticle(null), className: "text-[#00B3A4] hover:underline uppercase tracking-wider font-semibold" }, "Cerrar lectura"))))),
+        isNewEssayOpen && (react_1.default.createElement("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto", onClick: () => setIsNewEssayOpen(false) },
+            react_1.default.createElement("div", { className: "relative w-full max-w-xl bg-[#0D1B2A] border border-[#00B3A4]/45 p-7 sm:p-9 text-left my-auto shadow-2xl rounded-xl", onClick: (e) => e.stopPropagation() },
+                react_1.default.createElement("button", { onClick: () => setIsNewEssayOpen(false), className: "absolute top-5 right-5 p-2 text-[#E8D7A6]/70 hover:text-[#00B3A4] transition-colors", "aria-label": "Cerrar editor de nota" },
+                    react_1.default.createElement(lucide_react_1.X, { className: "w-5 h-5" })),
+                react_1.default.createElement("div", { className: "mb-6" },
+                    react_1.default.createElement("span", { className: "font-mono text-[9px] tracking-[0.3em] uppercase text-[#00B3A4] block mb-1 font-bold" }, "Cap\u00EDtulo V \u00B7 Ensayos & Apuntes"),
+                    react_1.default.createElement("h3", { className: "font-editorial text-2xl sm:text-3xl text-[#E8D7A6] font-normal" }, "Nueva Nota Editorial & Apunte."),
+                    react_1.default.createElement("p", { className: "font-editorial text-sm text-[#E8D7A6]/75 mt-1 font-light" }, "Se guardar\u00E1 en la base de datos de Supabase (`essays`) y se sumar\u00E1 al Cuaderno de S\u00EDmbolos.")),
+                essayNotice ? (react_1.default.createElement("div", { className: "py-8 text-center space-y-4" },
+                    react_1.default.createElement("div", { className: "w-12 h-12 mx-auto rounded-full border border-[#00B3A4] flex items-center justify-center text-[#00B3A4] bg-[#2A0E34]/60" },
+                        react_1.default.createElement(lucide_react_1.CheckCircle2, { className: "w-6 h-6" })),
+                    react_1.default.createElement("p", { className: "font-editorial text-lg text-[#E8D7A6]" }, essayNotice))) : (react_1.default.createElement("form", { onSubmit: handleCreateEssay, className: "space-y-4" },
+                    react_1.default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3.5" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Categor\u00EDa"),
+                            react_1.default.createElement("select", { value: essayForm.category, onChange: (e) => setEssayForm({ ...essayForm, category: e.target.value }), className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" },
+                                react_1.default.createElement("option", { value: "Tarot" }, "Tarot"),
+                                react_1.default.createElement("option", { value: "Psicoastrolog\u00EDa" }, "Psicoastrolog\u00EDa"),
+                                react_1.default.createElement("option", { value: "Arquetipos" }, "Arquetipos"),
+                                react_1.default.createElement("option", { value: "Luna" }, "Luna"),
+                                react_1.default.createElement("option", { value: "V\u00EDnculos" }, "V\u00EDnculos"),
+                                react_1.default.createElement("option", { value: "Autoconocimiento" }, "Autoconocimiento"))),
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Fecha / \u00C9poca"),
+                            react_1.default.createElement("input", { type: "text", value: essayForm.date, onChange: (e) => setEssayForm({ ...essayForm, date: e.target.value }), placeholder: "Ej. Solsticio 2026", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" })),
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Lectura Estimada"),
+                            react_1.default.createElement("input", { type: "text", value: essayForm.readTime, onChange: (e) => setEssayForm({ ...essayForm, readTime: e.target.value }), placeholder: "Ej. 5 min", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" }))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "T\u00EDtulo de la Nota Editorial *"),
+                        react_1.default.createElement("input", { type: "text", required: true, value: essayForm.title, onChange: (e) => setEssayForm({ ...essayForm, title: e.target.value }), placeholder: "Ej. El silencio del Eremita frente al ruido moderno", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" })),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Subt\u00EDtulo / Bajada Po\u00E9tica"),
+                        react_1.default.createElement("input", { type: "text", value: essayForm.subtitle, onChange: (e) => setEssayForm({ ...essayForm, subtitle: e.target.value }), placeholder: "Breve frase que sintetiza el esp\u00EDritu del apunte...", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" })),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Desarrollo de la Nota / Ensayo (separa p\u00E1rrafos con Enter) *"),
+                        react_1.default.createElement("textarea", { rows: 5, required: true, value: essayForm.body, onChange: (e) => setEssayForm({ ...essayForm, body: e.target.value }), placeholder: "Escribe aqu\u00ED el contenido completo de la nota editorial...", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded resize-none" })),
+                    react_1.default.createElement("div", { className: "pt-2 flex items-center justify-end gap-3" },
+                        react_1.default.createElement("button", { type: "button", onClick: () => setIsNewEssayOpen(false), className: "px-4 py-2 text-xs font-clean uppercase tracking-wider text-[#7A7A7A] hover:text-[#E8D7A6]" }, "Cancelar"),
+                        react_1.default.createElement("button", { type: "submit", disabled: savingEssay, className: "px-6 py-2.5 border border-[#00B3A4] bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.2em] transition-colors flex items-center gap-2 rounded shadow-[0_0_15px_rgba(0,179,164,0.25)]" },
+                            react_1.default.createElement(lucide_react_1.Feather, { className: "w-3.5 h-3.5 text-[#00B3A4]" }),
+                            react_1.default.createElement("span", null, savingEssay ? 'Guardando...' : 'Publicar Nota Editorial'))))))))));
 };
 exports.CuadernoSimbolos = CuadernoSimbolos;
 
@@ -3525,22 +3758,54 @@ const TESTIMONIALS = [
     },
 ];
 const TestimonialsSection = () => {
-    const [items, setItems] = (0, react_1.useState)(TESTIMONIALS);
+    const [items, setItems] = (0, react_1.useState)(() => {
+        const localSaved = (0, supabase_1.getLocalRecords)('narmer_local_testimonials');
+        return [...localSaved, ...TESTIMONIALS];
+    });
     const [currentIndex, setCurrentIndex] = (0, react_1.useState)(0);
     const [isPaused, setIsPaused] = (0, react_1.useState)(false);
+    const [isModalOpen, setIsModalOpen] = (0, react_1.useState)(false);
+    const [saving, setSaving] = (0, react_1.useState)(false);
+    const [savedNotice, setSavedNotice] = (0, react_1.useState)(null);
+    const [form, setForm] = (0, react_1.useState)({
+        author: '',
+        role: '',
+        location: '',
+        sessionType: '01 · TAROT',
+        archetype: '',
+        gender: 'female',
+        quote: '',
+    });
     const timerRef = (0, react_1.useRef)(null);
     const SLIDE_DURATION = 8000; // 8 seconds slow contemplative cycle
     (0, react_1.useEffect)(() => {
         let active = true;
-        (0, supabase_1.fetchSupabaseTable)('testimonials', 'select=*').then((remoteRows) => {
+        (0, supabase_1.fetchSupabaseTable)('testimonials', 'select=*&order=created_at.desc').then((remoteRows) => {
             if (!active || !remoteRows || remoteRows.length === 0)
                 return;
             const byId = new Map();
-            TESTIMONIALS.forEach((t) => byId.set(t.id, t));
+            const localSaved = (0, supabase_1.getLocalRecords)('narmer_local_testimonials');
+            localSaved.forEach((t) => byId.set(t.id, t));
             remoteRows.forEach((row) => {
                 if (row.id && row.quote && row.author) {
-                    byId.set(row.id, { ...byId.get(row.id), ...row });
+                    const normalized = {
+                        id: String(row.id),
+                        quote: String(row.quote),
+                        author: String(row.author),
+                        role: String(row.role || 'Consultante'),
+                        location: String(row.location || 'Online'),
+                        sessionType: String(row.sessionType || row.session_type || '01 · TAROT'),
+                        archetype: String(row.archetype || 'Símbolo Vivo'),
+                        year: String(row.year || new Date().getFullYear()),
+                        gender: row.gender || undefined,
+                        avatarUrl: row.avatarUrl || row.avatar_url || undefined,
+                    };
+                    byId.set(normalized.id, normalized);
                 }
+            });
+            TESTIMONIALS.forEach((t) => {
+                if (!byId.has(t.id))
+                    byId.set(t.id, t);
             });
             setItems(Array.from(byId.values()));
         });
@@ -3548,6 +3813,60 @@ const TestimonialsSection = () => {
             active = false;
         };
     }, []);
+    const handleSubmitResonancia = async (e) => {
+        e.preventDefault();
+        if (!form.author.trim() || !form.quote.trim())
+            return;
+        setSaving(true);
+        const yearStr = String(new Date().getFullYear());
+        const newId = `res-${Date.now()}`;
+        const newItem = {
+            id: newId,
+            author: form.author.trim(),
+            role: form.role.trim() || 'Consultante',
+            location: form.location.trim() || 'Consulta Online',
+            sessionType: form.sessionType,
+            archetype: form.archetype.trim() || 'Resonancia Simbólica',
+            year: yearStr,
+            gender: form.gender,
+            quote: form.quote.trim(),
+        };
+        // Guardar respaldo local inmediato y actualizar vista
+        (0, supabase_1.appendLocalRecord)('narmer_local_testimonials', newItem);
+        setItems((prev) => [newItem, ...prev.filter((item) => item.id !== newItem.id)]);
+        setCurrentIndex(0);
+        setIsPaused(true);
+        // Guardar en Supabase Database (tabla `testimonials`)
+        const result = await (0, supabase_1.insertSupabaseRecord)('testimonials', {
+            id: newItem.id,
+            author: newItem.author,
+            role: newItem.role,
+            location: newItem.location,
+            session_type: newItem.sessionType,
+            archetype: newItem.archetype,
+            year: newItem.year,
+            gender: newItem.gender,
+            quote: newItem.quote,
+            created_at: new Date().toISOString(),
+        });
+        setSaving(false);
+        setSavedNotice(result.ok
+            ? 'Tu resonancia fue guardada en Supabase y publicada en el archivo.'
+            : 'Tu resonancia quedó publicada y guardada en el archivo del Gabinete.');
+        setTimeout(() => {
+            setIsModalOpen(false);
+            setSavedNotice(null);
+            setForm({
+                author: '',
+                role: '',
+                location: '',
+                sessionType: '01 · TAROT',
+                archetype: '',
+                gender: 'female',
+                quote: '',
+            });
+        }, 1500);
+    };
     const handleNext = () => {
         setCurrentIndex((prev) => (prev + 1) % items.length);
     };
@@ -3586,7 +3905,10 @@ const TestimonialsSection = () => {
                         react_1.default.createElement("span", { className: "font-mono text-[10px] tracking-[0.3em] uppercase text-[#00B3A4]" }, "Cap\u00EDtulo IV \u00B7 Resonancias & Huellas")),
                     react_1.default.createElement(EditorialBlurredHeading_1.EditorialBlurredHeading, { as: "h2", delay: 0.12, duration: 1.2, blurAmount: 12, className: "font-editorial text-3xl sm:text-4xl md:text-5xl text-[#E8D7A6] font-normal leading-[1.15]" }, "Lo que el s\u00EDmbolo despierta."),
                     react_1.default.createElement("p", { className: "font-editorial text-sm sm:text-base text-[#E8D7A6]/75 font-light max-w-xl" }, "Palabras de consultantes que cruzaron el umbral y tradujeron los arcanos y planetas en claridad existencial.")),
-                react_1.default.createElement("div", { className: "flex items-center gap-3 self-start md:self-end" },
+                react_1.default.createElement("div", { className: "flex flex-wrap items-center gap-3 self-start md:self-end" },
+                    react_1.default.createElement("button", { onClick: () => setIsModalOpen(true), className: "px-4 py-2 rounded-full border border-[#00B3A4]/60 bg-[#2A0E34]/50 hover:bg-[#2A0E34] text-[#E8D7A6] font-clean text-[10px] tracking-[0.18em] uppercase transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]" },
+                        react_1.default.createElement(lucide_react_1.Feather, { className: "w-3.5 h-3.5 text-[#00B3A4]" }),
+                        react_1.default.createElement("span", null, "Dejar una resonancia")),
                     react_1.default.createElement("button", { onClick: () => setIsPaused((prev) => !prev), className: "p-2 text-[#E8D7A6]/60 hover:text-[#00B3A4] transition-colors border border-[#E8D7A6]/20 rounded-full", title: isPaused ? 'Reanudar transición automática' : 'Pausar transición', "aria-label": isPaused ? 'Reanudar pase automático' : 'Pausar pase automático' }, isPaused ? react_1.default.createElement(lucide_react_1.Play, { className: "w-3.5 h-3.5" }) : react_1.default.createElement(lucide_react_1.Pause, { className: "w-3.5 h-3.5" })),
                     react_1.default.createElement("div", { className: "flex items-center gap-1.5 border border-[#E8D7A6]/20 rounded-full p-1 bg-[#0D1B2A]/70 backdrop-blur-sm" },
                         react_1.default.createElement("button", { onClick: handlePrev, className: "p-2 text-[#E8D7A6]/80 hover:text-[#00B3A4] hover:bg-[#2A0E34]/80 rounded-full transition-all", "aria-label": "Testimonio anterior" },
@@ -3647,7 +3969,55 @@ const TestimonialsSection = () => {
                                 ease: 'linear',
                             } })) : (react_1.default.createElement("div", { className: "w-0 group-hover:w-full h-full bg-[#E8D7A6]/40 transition-all duration-300" })))));
                 })),
-                react_1.default.createElement("span", { className: "font-mono text-[9px] tracking-[0.3em] uppercase text-[#7A7A7A]" }, "GABINETE NARMER \u00B7 ARCHIVO DE TESTIMONIOS")))));
+                react_1.default.createElement("span", { className: "font-mono text-[9px] tracking-[0.3em] uppercase text-[#7A7A7A]" }, "GABINETE NARMER \u00B7 ARCHIVO DE TESTIMONIOS"))),
+        isModalOpen && (react_1.default.createElement("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto", onClick: () => setIsModalOpen(false) },
+            react_1.default.createElement("div", { className: "relative w-full max-w-lg bg-[#0D1B2A] border border-[#00B3A4]/45 p-7 sm:p-9 text-left my-auto shadow-2xl rounded-xl", onClick: (e) => e.stopPropagation() },
+                react_1.default.createElement("button", { onClick: () => setIsModalOpen(false), className: "absolute top-5 right-5 p-2 text-[#E8D7A6]/70 hover:text-[#00B3A4] transition-colors", "aria-label": "Cerrar formulario de resonancia" },
+                    react_1.default.createElement(lucide_react_1.X, { className: "w-5 h-5" })),
+                react_1.default.createElement("div", { className: "mb-6" },
+                    react_1.default.createElement("span", { className: "font-mono text-[9px] tracking-[0.3em] uppercase text-[#00B3A4] block mb-1 font-bold" }, "Cap\u00EDtulo IV \u00B7 Resonancias & Huellas"),
+                    react_1.default.createElement("h3", { className: "font-editorial text-2xl sm:text-3xl text-[#E8D7A6] font-normal" }, "Compartir tu experiencia simb\u00F3lica."),
+                    react_1.default.createElement("p", { className: "font-editorial text-sm text-[#E8D7A6]/75 mt-1 font-light" }, "Tu comentario se guardar\u00E1 en el archivo de resonancias del Gabinete Narmer.")),
+                savedNotice ? (react_1.default.createElement("div", { className: "py-8 text-center space-y-4" },
+                    react_1.default.createElement("div", { className: "w-12 h-12 mx-auto rounded-full border border-[#00B3A4] flex items-center justify-center text-[#00B3A4] bg-[#2A0E34]/60" },
+                        react_1.default.createElement(lucide_react_1.CheckCircle2, { className: "w-6 h-6" })),
+                    react_1.default.createElement("p", { className: "font-editorial text-lg text-[#E8D7A6]" }, savedNotice))) : (react_1.default.createElement("form", { onSubmit: handleSubmitResonancia, className: "space-y-4" },
+                    react_1.default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3.5" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Tu Nombre o Iniciales *"),
+                            react_1.default.createElement("input", { type: "text", required: true, value: form.author, onChange: (e) => setForm({ ...form, author: e.target.value }), placeholder: "Ej. Clara M.", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" })),
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Ocupaci\u00F3n o Rol"),
+                            react_1.default.createElement("input", { type: "text", value: form.role, onChange: (e) => setForm({ ...form, role: e.target.value }), placeholder: "Ej. Arquitecta / Docente", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" }))),
+                    react_1.default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3.5" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Ciudad / Pa\u00EDs"),
+                            react_1.default.createElement("input", { type: "text", value: form.location, onChange: (e) => setForm({ ...form, location: e.target.value }), placeholder: "Ej. C\u00F3rdoba / Buenos Aires", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" })),
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Consulta Realizada"),
+                            react_1.default.createElement("select", { value: form.sessionType, onChange: (e) => setForm({ ...form, sessionType: e.target.value }), className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" },
+                                react_1.default.createElement("option", { value: "01 \u00B7 TAROT" }, "01 \u00B7 TAROT"),
+                                react_1.default.createElement("option", { value: "02 \u00B7 PSICOASTROLOG\u00CDA" }, "02 \u00B7 PSICOASTROLOG\u00CDA"),
+                                react_1.default.createElement("option", { value: "03 \u00B7 TAROT + CARTA NATAL" }, "03 \u00B7 TAROT + CARTA NATAL"),
+                                react_1.default.createElement("option", { value: "04 \u00B7 BIODECODIFICACI\u00D3N" }, "04 \u00B7 BIODECODIFICACI\u00D3N")))),
+                    react_1.default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3.5" },
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Arquetipo o S\u00EDmbolo (Opcional)"),
+                            react_1.default.createElement("input", { type: "text", value: form.archetype, onChange: (e) => setForm({ ...form, archetype: e.target.value }), placeholder: "Ej. La Sacerdotisa \u00B7 Casa IV", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" })),
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Medall\u00F3n de Perfil Egipcio"),
+                            react_1.default.createElement("select", { value: form.gender, onChange: (e) => setForm({ ...form, gender: e.target.value }), className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded" },
+                                react_1.default.createElement("option", { value: "female" }, "Perfil Femenino (Sacerdotisa)"),
+                                react_1.default.createElement("option", { value: "male" }, "Perfil Masculino (Escriba Solar)"),
+                                react_1.default.createElement("option", { value: "couple" }, "Consulta Vincular / Pareja")))),
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("label", { className: "text-[11px] font-clean text-[#E8D7A6]/80 block mb-1" }, "Tu Comentario / Resonancia *"),
+                        react_1.default.createElement("textarea", { rows: 3, required: true, value: form.quote, onChange: (e) => setForm({ ...form, quote: e.target.value }), placeholder: "Escribe aqu\u00ED lo que la lectura o el mapa despert\u00F3 en ti...", className: "w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded resize-none" })),
+                    react_1.default.createElement("div", { className: "pt-2 flex items-center justify-end gap-3" },
+                        react_1.default.createElement("button", { type: "button", onClick: () => setIsModalOpen(false), className: "px-4 py-2 text-xs font-clean uppercase tracking-wider text-[#7A7A7A] hover:text-[#E8D7A6]" }, "Cancelar"),
+                        react_1.default.createElement("button", { type: "submit", disabled: saving, className: "px-6 py-2.5 border border-[#00B3A4] bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.2em] transition-colors flex items-center gap-2 rounded shadow-[0_0_15px_rgba(0,179,164,0.25)]" },
+                            react_1.default.createElement(lucide_react_1.Feather, { className: "w-3.5 h-3.5 text-[#00B3A4]" }),
+                            react_1.default.createElement("span", null, saving ? 'Guardando...' : 'Publicar Resonancia'))))))))));
 };
 exports.TestimonialsSection = TestimonialsSection;
 
@@ -5222,40 +5592,78 @@ require("./index.css");
 modules["src/services/supabase.ts"] = function(require, module, exports) {
 "use strict";
 /**
- * Capa de integración ligera con Supabase (Storage & Database REST API)
+ * Capa de integración con Supabase (Storage & Database REST API) + Respaldo Local y Notificación por Email
  *
- * - No requiere modificar credenciales existentes ni rompe la aplicación si las
- *   variables de entorno aún no están configuradas.
- * - Cuando VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY están presentes en el entorno,
- *   habilita la carga de fotografías/videos desde Supabase Storage y la sincronización
- *   de datos y reservas con Supabase Database sin duplicar estructuras existentes.
+ * Tablas soportadas en Supabase:
+ * 1. `testimonials` -> Comentarios y resonancias en Capítulo IV (Resonancias & Huellas)
+ * 2. `essays`       -> Ensayos y notas editoriales en Capítulo V (Ensayos & Apuntes)
+ * 3. `essay_notes`  -> Apuntes y notas al margen dentro de cada ensayo del Capítulo V
+ * 4. `bookings`     -> Reservas de sesiones con envío de notificación a dalekavideos@gmail.com
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isVideoAsset = exports.getSupabaseStorageUrl = exports.isSupabaseConfigured = exports.SUPABASE_ANON_KEY = exports.SUPABASE_URL = void 0;
+exports.isVideoAsset = exports.getSupabaseStorageUrl = exports.saveSupabaseCredentialsLocal = exports.isSupabaseConfigured = exports.SUPABASE_ANON_KEY = exports.SUPABASE_URL = exports.getSupabaseAnonKey = exports.getSupabaseUrl = exports.OWNER_NOTIFICATION_EMAIL = void 0;
+exports.getLocalRecords = getLocalRecords;
+exports.appendLocalRecord = appendLocalRecord;
 exports.fetchSupabaseTable = fetchSupabaseTable;
 exports.insertSupabaseRecord = insertSupabaseRecord;
+exports.sendBookingEmailToOwner = sendBookingEmailToOwner;
+exports.buildBookingMailtoUrl = buildBookingMailtoUrl;
+exports.OWNER_NOTIFICATION_EMAIL = 'dalekavideos@gmail.com';
 const getEnvVar = (key) => {
     try {
         const env = (window.__NARMER_ENV__ || {});
-        return env?.[key]?.trim() || '';
+        const fromEnv = env?.[key]?.trim();
+        if (fromEnv)
+            return fromEnv;
     }
     catch {
-        return '';
+        // Ignorar si import.meta no está disponible
     }
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            if (key === 'VITE_SUPABASE_URL') {
+                return window.localStorage.getItem('narmer_supabase_url')?.trim() || '';
+            }
+            if (key === 'VITE_SUPABASE_ANON_KEY') {
+                return window.localStorage.getItem('narmer_supabase_anon_key')?.trim() || '';
+            }
+        }
+    }
+    catch {
+        // Ignorar errores de acceso a localStorage
+    }
+    return '';
 };
-exports.SUPABASE_URL = getEnvVar('VITE_SUPABASE_URL');
-exports.SUPABASE_ANON_KEY = getEnvVar('VITE_SUPABASE_ANON_KEY');
+const getSupabaseUrl = () => getEnvVar('VITE_SUPABASE_URL');
+exports.getSupabaseUrl = getSupabaseUrl;
+const getSupabaseAnonKey = () => getEnvVar('VITE_SUPABASE_ANON_KEY');
+exports.getSupabaseAnonKey = getSupabaseAnonKey;
+exports.SUPABASE_URL = (0, exports.getSupabaseUrl)();
+exports.SUPABASE_ANON_KEY = (0, exports.getSupabaseAnonKey)();
 const isSupabaseConfigured = () => {
-    return Boolean(exports.SUPABASE_URL &&
-        exports.SUPABASE_ANON_KEY &&
-        exports.SUPABASE_URL.startsWith('http') &&
-        !exports.SUPABASE_URL.includes('YOUR_') &&
-        !exports.SUPABASE_ANON_KEY.includes('YOUR_'));
+    const url = (0, exports.getSupabaseUrl)();
+    const key = (0, exports.getSupabaseAnonKey)();
+    return Boolean(url &&
+        key &&
+        url.startsWith('http') &&
+        !url.includes('YOUR_') &&
+        !key.includes('YOUR_'));
 };
 exports.isSupabaseConfigured = isSupabaseConfigured;
+const saveSupabaseCredentialsLocal = (url, anonKey) => {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('narmer_supabase_url', url.trim());
+            window.localStorage.setItem('narmer_supabase_anon_key', anonKey.trim());
+        }
+    }
+    catch {
+        // Ignorar si localStorage está bloqueado
+    }
+};
+exports.saveSupabaseCredentialsLocal = saveSupabaseCredentialsLocal;
 /**
- * Construye la URL pública de un archivo (fotografía o video) alojado en Supabase Storage.
- * Si `pathOrUrl` ya es una URL completa (http/https), la devuelve directamente.
+ * Construye la URL pública de un archivo alojado en Supabase Storage.
  */
 const getSupabaseStorageUrl = (bucket, pathOrUrl) => {
     if (!pathOrUrl)
@@ -5266,10 +5674,11 @@ const getSupabaseStorageUrl = (bucket, pathOrUrl) => {
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
         return trimmed;
     }
-    if (!exports.SUPABASE_URL || !exports.SUPABASE_URL.startsWith('http')) {
+    const url = (0, exports.getSupabaseUrl)();
+    if (!url || !url.startsWith('http')) {
         return null;
     }
-    const baseUrl = exports.SUPABASE_URL.replace(/\/+$/, '');
+    const baseUrl = url.replace(/\/+$/, '');
     const cleanBucket = bucket.replace(/^\/+|\/+$/g, '');
     const cleanPath = trimmed.replace(/^\/+/, '');
     return `${baseUrl}/storage/v1/object/public/${cleanBucket}/${cleanPath}`;
@@ -5286,20 +5695,52 @@ const isVideoAsset = (urlOrPath) => {
 };
 exports.isVideoAsset = isVideoAsset;
 /**
+ * Lee registros guardados localmente en el navegador como respaldo inmediato.
+ */
+function getLocalRecords(storageKey) {
+    try {
+        if (typeof window === 'undefined' || !window.localStorage)
+            return [];
+        const raw = window.localStorage.getItem(storageKey);
+        if (!raw)
+            return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    }
+    catch {
+        return [];
+    }
+}
+/**
+ * Guarda un registro en localStorage para persistencia inmediata aún sin conexión.
+ */
+function appendLocalRecord(storageKey, record) {
+    try {
+        const current = getLocalRecords(storageKey);
+        const updated = [record, ...current];
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(storageKey, JSON.stringify(updated));
+        }
+        return updated;
+    }
+    catch {
+        return [record];
+    }
+}
+/**
  * Consulta registros de una tabla en Supabase Database mediante PostgREST.
- * Devuelve `null` de forma silenciosa si Supabase no está configurado o si ocurre un error,
- * permitiendo que los componentes conserven sus datos editoriales originales sin duplicarlos.
  */
 async function fetchSupabaseTable(table, queryParams = 'select=*') {
     if (!(0, exports.isSupabaseConfigured)())
         return null;
     try {
-        const baseUrl = exports.SUPABASE_URL.replace(/\/+$/, '');
+        const baseUrl = (0, exports.getSupabaseUrl)().replace(/\/+$/, '');
+        const anonKey = (0, exports.getSupabaseAnonKey)();
         const response = await fetch(`${baseUrl}/rest/v1/${table}?${queryParams}`, {
             method: 'GET',
             headers: {
-                apikey: exports.SUPABASE_ANON_KEY,
-                Authorization: `Bearer ${exports.SUPABASE_ANON_KEY}`,
+                apikey: anonKey,
+                Authorization: `Bearer ${anonKey}`,
                 Accept: 'application/json',
             },
         });
@@ -5313,33 +5754,86 @@ async function fetchSupabaseTable(table, queryParams = 'select=*') {
     }
 }
 /**
- * Inserta un registro en una tabla de Supabase Database (ej. reservas de sesiones o consultas).
- * Operación segura y no bloqueante.
+ * Inserta un registro en una tabla de Supabase Database (testimonials, essays, essay_notes, bookings).
  */
 async function insertSupabaseRecord(table, payload) {
     if (!(0, exports.isSupabaseConfigured)()) {
-        return { ok: false, error: 'Supabase no configurado aún' };
+        return { ok: false, error: 'Supabase en modo local (pendiente configurar credenciales)' };
     }
     try {
-        const baseUrl = exports.SUPABASE_URL.replace(/\/+$/, '');
+        const baseUrl = (0, exports.getSupabaseUrl)().replace(/\/+$/, '');
+        const anonKey = (0, exports.getSupabaseAnonKey)();
         const response = await fetch(`${baseUrl}/rest/v1/${table}`, {
             method: 'POST',
             headers: {
-                apikey: exports.SUPABASE_ANON_KEY,
-                Authorization: `Bearer ${exports.SUPABASE_ANON_KEY}`,
+                apikey: anonKey,
+                Authorization: `Bearer ${anonKey}`,
                 'Content-Type': 'application/json',
                 Prefer: 'return=minimal',
             },
             body: JSON.stringify(payload),
         });
         if (!response.ok) {
-            return { ok: false, error: `HTTP ${response.status}` };
+            const errText = await response.text().catch(() => '');
+            return { ok: false, error: `HTTP ${response.status} ${errText}` };
         }
         return { ok: true };
     }
     catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : 'Error de red' };
     }
+}
+/**
+ * Envía automáticamente los datos de la reserva al correo dalekavideos@gmail.com
+ * mediante FormSubmit AJAX y genera el enlace mailto de respaldo.
+ */
+async function sendBookingEmailToOwner(booking) {
+    try {
+        const response = await fetch(`https://formsubmit.co/ajax/${exports.OWNER_NOTIFICATION_EMAIL}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            },
+            body: JSON.stringify({
+                _subject: `✦ Nueva Reserva NARMER: ${booking.session_type} — ${booking.client_name}`,
+                _template: 'table',
+                _captcha: 'false',
+                Consultante: booking.client_name,
+                Email_Consultante: booking.client_email,
+                Sesion_Solicitada: booking.session_type,
+                Fecha_Tentativa: booking.preferred_date || 'A coordinar',
+                Horario_Preferido: `${booking.preferred_time} hs`,
+                Mensaje_o_Inquietud: booking.notes || 'Sin notas adicionales',
+                Fecha_Registro: booking.created_at,
+            }),
+        });
+        return { ok: response.ok };
+    }
+    catch {
+        return { ok: false };
+    }
+}
+/**
+ * Construye un enlace mailto: directo hacia dalekavideos@gmail.com con el detalle de la reserva.
+ */
+function buildBookingMailtoUrl(booking) {
+    const subject = encodeURIComponent(`Reserva de Consulta NARMER · ${booking.session_type} (${booking.client_name})`);
+    const body = encodeURIComponent([
+        'Hola Narmer,',
+        '',
+        'Te envío los datos de mi solicitud de reserva en el Gabinete:',
+        '',
+        `• Consultante: ${booking.client_name}`,
+        `• Correo de contacto: ${booking.client_email}`,
+        `• Sesión solicitada: ${booking.session_type}`,
+        `• Fecha tentativa: ${booking.preferred_date || 'A coordinar'}`,
+        `• Franja horaria: ${booking.preferred_time} hs`,
+        `• Inquietud / Nota: ${booking.notes || 'Sin notas adicionales'}`,
+        '',
+        'Muchas gracias.',
+    ].join('\n'));
+    return `mailto:${exports.OWNER_NOTIFICATION_EMAIL}?subject=${subject}&body=${body}`;
 }
 
 };

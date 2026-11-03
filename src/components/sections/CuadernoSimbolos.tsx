@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowUpRight, X, Clock, BookOpen } from 'lucide-react';
+import { ArrowUpRight, X, Clock, BookOpen, Feather, CheckCircle2, Sparkles } from 'lucide-react';
 import { EditorialBlurredHeading } from '../ui/EditorialBlurredHeading';
 import { SupabaseMedia } from '../ui/SupabaseMedia';
-import { fetchSupabaseTable } from '../../services/supabase';
+import { fetchSupabaseTable, insertSupabaseRecord, getLocalRecords, appendLocalRecord } from '../../services/supabase';
+
+interface EditorialMarginalNote {
+  id: string;
+  essay_id: string;
+  author: string;
+  note: string;
+  created_at: string;
+}
 
 interface Article {
   id: string;
@@ -70,27 +78,173 @@ const ESSAYS: Article[] = [
 ];
 
 export const CuadernoSimbolos: React.FC = () => {
-  const [articles, setArticles] = useState<Article[]>(ESSAYS);
+  const [articles, setArticles] = useState<Article[]>(() => {
+    const localSaved = getLocalRecords<Article>('narmer_local_essays');
+    return [...ESSAYS, ...localSaved];
+  });
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [isNewEssayOpen, setIsNewEssayOpen] = useState(false);
+  const [savingEssay, setSavingEssay] = useState(false);
+  const [essayNotice, setEssayNotice] = useState<string | null>(null);
+  const [essayForm, setEssayForm] = useState({
+    category: 'Tarot' as Article['category'],
+    title: '',
+    subtitle: '',
+    readTime: '5 min',
+    date: 'Bitácora 2026',
+    excerpt: '',
+    body: '',
+  });
+
+  // Notas editoriales al margen dentro de cada ensayo
+  const [marginalNotes, setMarginalNotes] = useState<EditorialMarginalNote[]>(() =>
+    getLocalRecords<EditorialMarginalNote>('narmer_local_essay_notes')
+  );
+  const [noteAuthor, setNoteAuthor] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
     let active = true;
-    fetchSupabaseTable<Article>('essays', 'select=*&order=number.asc').then((remoteRows) => {
+    fetchSupabaseTable<Record<string, any>>('essays', 'select=*&order=number.asc').then((remoteRows) => {
       if (!active || !remoteRows || remoteRows.length === 0) return;
-      // Combinar sin duplicar información por `id` manteniendo la estructura original
       const byId = new Map<string, Article>();
       ESSAYS.forEach((item) => byId.set(item.id, item));
+      const localSaved = getLocalRecords<Article>('narmer_local_essays');
+      localSaved.forEach((item) => byId.set(item.id, item));
       remoteRows.forEach((row) => {
-        if (row.id && row.title && Array.isArray(row.fullEssay)) {
-          byId.set(row.id, { ...byId.get(row.id), ...row });
+        const parsedParagraphs = Array.isArray(row.fullEssay)
+          ? row.fullEssay
+          : Array.isArray(row.full_essay)
+          ? row.full_essay
+          : typeof row.full_essay === 'string'
+          ? row.full_essay.split('\n\n').filter(Boolean)
+          : null;
+        if (row.id && row.title && parsedParagraphs) {
+          byId.set(String(row.id), {
+            id: String(row.id),
+            category: (row.category as Article['category']) || 'Tarot',
+            number: String(row.number || `N° 0${byId.size + 1}`),
+            title: String(row.title),
+            subtitle: String(row.subtitle || ''),
+            readTime: String(row.readTime || row.read_time || '5 min'),
+            date: String(row.date || 'Bitácora 2026'),
+            excerpt: String(row.excerpt || ''),
+            fullEssay: parsedParagraphs,
+            mediaUrl: row.mediaUrl || row.media_url || undefined,
+          });
         }
       });
       setArticles(Array.from(byId.values()));
     });
+
+    fetchSupabaseTable<EditorialMarginalNote>('essay_notes', 'select=*&order=created_at.desc').then((remoteNotes) => {
+      if (!active || !remoteNotes || remoteNotes.length === 0) return;
+      const byId = new Map<string, EditorialMarginalNote>();
+      getLocalRecords<EditorialMarginalNote>('narmer_local_essay_notes').forEach((n) => byId.set(n.id, n));
+      remoteNotes.forEach((n) => {
+        if (n.id && n.essay_id && n.note) byId.set(n.id, n);
+      });
+      setMarginalNotes(Array.from(byId.values()));
+    });
+
     return () => {
       active = false;
     };
   }, []);
+
+  const handleCreateEssay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!essayForm.title.trim() || !essayForm.body.trim()) return;
+    setSavingEssay(true);
+
+    const nextNumber = `N° ${String(articles.length + 1).padStart(2, '0')}`;
+    const paragraphs = essayForm.body
+      .split(/\n+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const autoExcerpt =
+      essayForm.excerpt.trim() ||
+      (paragraphs[0] ? paragraphs[0].slice(0, 165) + (paragraphs[0].length > 165 ? '…' : '') : '');
+
+    const newArticle: Article = {
+      id: `nota-${Date.now()}`,
+      category: essayForm.category,
+      number: nextNumber,
+      title: essayForm.title.trim(),
+      subtitle: essayForm.subtitle.trim() || 'Apunte del Gabinete de Interpretación Simbólica.',
+      readTime: essayForm.readTime.trim() || '5 min',
+      date: essayForm.date.trim() || 'Bitácora 2026',
+      excerpt: autoExcerpt,
+      fullEssay: paragraphs,
+    };
+
+    appendLocalRecord('narmer_local_essays', newArticle);
+    setArticles((prev) => [...prev, newArticle]);
+
+    const res = await insertSupabaseRecord('essays', {
+      id: newArticle.id,
+      category: newArticle.category,
+      number: newArticle.number,
+      title: newArticle.title,
+      subtitle: newArticle.subtitle,
+      read_time: newArticle.readTime,
+      date: newArticle.date,
+      excerpt: newArticle.excerpt,
+      full_essay: newArticle.fullEssay,
+      created_at: new Date().toISOString(),
+    });
+
+    setSavingEssay(false);
+    setEssayNotice(
+      res.ok
+        ? 'Nota editorial guardada en Supabase y publicada en el Cuaderno.'
+        : 'Nota editorial publicada y guardada en el Cuaderno de Símbolos.'
+    );
+
+    setTimeout(() => {
+      setIsNewEssayOpen(false);
+      setEssayNotice(null);
+      setEssayForm({
+        category: 'Tarot',
+        title: '',
+        subtitle: '',
+        readTime: '5 min',
+        date: 'Bitácora 2026',
+        excerpt: '',
+        body: '',
+      });
+    }, 1400);
+  };
+
+  const handleAddMarginalNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedArticle || !noteContent.trim()) return;
+    setSavingNote(true);
+
+    const newNote: EditorialMarginalNote = {
+      id: `apunte-${Date.now()}`,
+      essay_id: selectedArticle.id,
+      author: noteAuthor.trim() || 'Nota de Lectura',
+      note: noteContent.trim(),
+      created_at: new Date().toISOString(),
+    };
+
+    appendLocalRecord('narmer_local_essay_notes', newNote);
+    setMarginalNotes((prev) => [newNote, ...prev]);
+
+    await insertSupabaseRecord('essay_notes', {
+      id: newNote.id,
+      essay_id: newNote.essay_id,
+      author: newNote.author,
+      note: newNote.note,
+      created_at: newNote.created_at,
+    });
+
+    setSavingNote(false);
+    setNoteAuthor('');
+    setNoteContent('');
+  };
 
   return (
     <section id="cuaderno" className="py-28 px-6 sm:px-12 md:px-20 bg-[#0D1B2A] relative overflow-hidden border-t border-[#7A7A7A]/25">
@@ -119,8 +273,17 @@ export const CuadernoSimbolos: React.FC = () => {
             <p className="mt-4 font-editorial text-base sm:text-lg text-[#E8D7A6]/80 font-light leading-relaxed max-w-2xl">
               Páginas de reflexión sobre mitología, arquetipos lunares y la psicología de la mirada interior.
             </p>
-            <div className="mt-5 font-mono text-xs text-[#00B3A4] tracking-widest uppercase">
-              REVISTA EDITORIAL · NARMER
+            <div className="mt-5 flex flex-wrap items-center gap-4">
+              <span className="font-mono text-xs text-[#00B3A4] tracking-widest uppercase">
+                REVISTA EDITORIAL · NARMER
+              </span>
+              <button
+                onClick={() => setIsNewEssayOpen(true)}
+                className="px-4 py-2 rounded-full border border-[#00B3A4]/60 bg-[#2A0E34]/50 hover:bg-[#2A0E34] text-[#E8D7A6] font-clean text-[10px] tracking-[0.18em] uppercase transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]"
+              >
+                <Feather className="w-3.5 h-3.5 text-[#00B3A4]" />
+                <span>Escribir Nota Editorial</span>
+              </button>
             </div>
           </div>
 
@@ -232,7 +395,72 @@ export const CuadernoSimbolos: React.FC = () => {
               ))}
             </div>
 
-            <div className="mt-12 pt-6 border-t border-[#7A7A7A]/25 flex items-center justify-between text-xs font-mono text-[#7A7A7A]">
+            {/* Notas Editoriales & Apuntes al Margen (Guardados en Supabase) */}
+            <div className="mt-10 pt-8 border-t border-[#00B3A4]/30 space-y-5">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-[#00B3A4] flex items-center gap-1.5 font-bold">
+                  <Sparkles className="w-3 h-3" /> Notas Editoriales & Apuntes al Margen
+                </span>
+                <span className="font-mono text-[10px] text-[#7A7A7A]">
+                  {marginalNotes.filter((n) => n.essay_id === selectedArticle.id).length} apuntes
+                </span>
+              </div>
+
+              {marginalNotes.filter((n) => n.essay_id === selectedArticle.id).length > 0 && (
+                <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                  {marginalNotes
+                    .filter((n) => n.essay_id === selectedArticle.id)
+                    .map((n) => (
+                      <div
+                        key={n.id}
+                        className="p-3.5 rounded-lg border border-[#E8D7A6]/15 bg-[#08121D] text-xs space-y-1"
+                      >
+                        <div className="flex items-center justify-between font-mono text-[10px] text-[#00B3A4]">
+                          <span>{n.author}</span>
+                          <span className="text-[#7A7A7A]">
+                            {new Date(n.created_at).toLocaleDateString('es-AR')}
+                          </span>
+                        </div>
+                        <p className="font-editorial text-sm text-[#E8D7A6]/90 leading-relaxed">
+                          {n.note}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              <form onSubmit={handleAddMarginalNote} className="space-y-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    value={noteAuthor}
+                    onChange={(e) => setNoteAuthor(e.target.value)}
+                    placeholder="Autor / Firma (ej. Narmer)"
+                    className="bg-[#070F18] border border-[#7A7A7A]/35 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                  />
+                  <input
+                    type="text"
+                    required
+                    value={noteContent}
+                    onChange={(e) => setNoteContent(e.target.value)}
+                    placeholder="Agregar apunte o nota editorial sobre este ensayo..."
+                    className="sm:col-span-2 bg-[#070F18] border border-[#7A7A7A]/35 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={savingNote}
+                    className="px-4 py-2 border border-[#00B3A4]/70 bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-[10px] uppercase tracking-[0.2em] transition-colors rounded flex items-center gap-1.5"
+                  >
+                    <Feather className="w-3 h-3 text-[#00B3A4]" />
+                    <span>{savingNote ? 'Guardando...' : 'Guardar Apunte'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="mt-10 pt-6 border-t border-[#7A7A7A]/25 flex items-center justify-between text-xs font-mono text-[#7A7A7A]">
               <span>Publicado en el Cuaderno de Símbolos</span>
               <button
                 onClick={() => setSelectedArticle(null)}
@@ -241,6 +469,155 @@ export const CuadernoSimbolos: React.FC = () => {
                 Cerrar lectura
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Crear una Nueva Nota Editorial / Ensayo en Capítulo V */}
+      {isNewEssayOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto"
+          onClick={() => setIsNewEssayOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-xl bg-[#0D1B2A] border border-[#00B3A4]/45 p-7 sm:p-9 text-left my-auto shadow-2xl rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsNewEssayOpen(false)}
+              className="absolute top-5 right-5 p-2 text-[#E8D7A6]/70 hover:text-[#00B3A4] transition-colors"
+              aria-label="Cerrar editor de nota"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-6">
+              <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-[#00B3A4] block mb-1 font-bold">
+                Capítulo V · Ensayos & Apuntes
+              </span>
+              <h3 className="font-editorial text-2xl sm:text-3xl text-[#E8D7A6] font-normal">
+                Nueva Nota Editorial & Apunte.
+              </h3>
+              <p className="font-editorial text-sm text-[#E8D7A6]/75 mt-1 font-light">
+                Se guardará en la base de datos de Supabase (`essays`) y se sumará al Cuaderno de Símbolos.
+              </p>
+            </div>
+
+            {essayNotice ? (
+              <div className="py-8 text-center space-y-4">
+                <div className="w-12 h-12 mx-auto rounded-full border border-[#00B3A4] flex items-center justify-center text-[#00B3A4] bg-[#2A0E34]/60">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <p className="font-editorial text-lg text-[#E8D7A6]">{essayNotice}</p>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateEssay} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  <div>
+                    <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                      Categoría
+                    </label>
+                    <select
+                      value={essayForm.category}
+                      onChange={(e) =>
+                        setEssayForm({ ...essayForm, category: e.target.value as Article['category'] })
+                      }
+                      className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                    >
+                      <option value="Tarot">Tarot</option>
+                      <option value="Psicoastrología">Psicoastrología</option>
+                      <option value="Arquetipos">Arquetipos</option>
+                      <option value="Luna">Luna</option>
+                      <option value="Vínculos">Vínculos</option>
+                      <option value="Autoconocimiento">Autoconocimiento</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                      Fecha / Época
+                    </label>
+                    <input
+                      type="text"
+                      value={essayForm.date}
+                      onChange={(e) => setEssayForm({ ...essayForm, date: e.target.value })}
+                      placeholder="Ej. Solsticio 2026"
+                      className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                      Lectura Estimada
+                    </label>
+                    <input
+                      type="text"
+                      value={essayForm.readTime}
+                      onChange={(e) => setEssayForm({ ...essayForm, readTime: e.target.value })}
+                      placeholder="Ej. 5 min"
+                      className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                    Título de la Nota Editorial *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={essayForm.title}
+                    onChange={(e) => setEssayForm({ ...essayForm, title: e.target.value })}
+                    placeholder="Ej. El silencio del Eremita frente al ruido moderno"
+                    className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                    Subtítulo / Bajada Poética
+                  </label>
+                  <input
+                    type="text"
+                    value={essayForm.subtitle}
+                    onChange={(e) => setEssayForm({ ...essayForm, subtitle: e.target.value })}
+                    placeholder="Breve frase que sintetiza el espíritu del apunte..."
+                    className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                    Desarrollo de la Nota / Ensayo (separa párrafos con Enter) *
+                  </label>
+                  <textarea
+                    rows={5}
+                    required
+                    value={essayForm.body}
+                    onChange={(e) => setEssayForm({ ...essayForm, body: e.target.value })}
+                    placeholder="Escribe aquí el contenido completo de la nota editorial..."
+                    className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded resize-none"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsNewEssayOpen(false)}
+                    className="px-4 py-2 text-xs font-clean uppercase tracking-wider text-[#7A7A7A] hover:text-[#E8D7A6]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingEssay}
+                    className="px-6 py-2.5 border border-[#00B3A4] bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.2em] transition-colors flex items-center gap-2 rounded shadow-[0_0_15px_rgba(0,179,164,0.25)]"
+                  >
+                    <Feather className="w-3.5 h-3.5 text-[#00B3A4]" />
+                    <span>{savingEssay ? 'Guardando...' : 'Publicar Nota Editorial'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

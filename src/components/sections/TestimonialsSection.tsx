@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, Sparkles, Pause, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Pause, Play, Feather, X, CheckCircle2 } from 'lucide-react';
 import { EditorialBlurredHeading } from '../ui/EditorialBlurredHeading';
 import { SupabaseMedia } from '../ui/SupabaseMedia';
-import { fetchSupabaseTable } from '../../services/supabase';
+import { fetchSupabaseTable, insertSupabaseRecord, getLocalRecords, appendLocalRecord } from '../../services/supabase';
 
 export type TestimonialGender = 'female' | 'male' | 'couple';
 
@@ -393,23 +393,54 @@ const TESTIMONIALS: TestimonialItem[] = [
 ];
 
 export const TestimonialsSection: React.FC = () => {
-  const [items, setItems] = useState<TestimonialItem[]>(TESTIMONIALS);
+  const [items, setItems] = useState<TestimonialItem[]>(() => {
+    const localSaved = getLocalRecords<TestimonialItem>('narmer_local_testimonials');
+    return [...localSaved, ...TESTIMONIALS];
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedNotice, setSavedNotice] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    author: '',
+    role: '',
+    location: '',
+    sessionType: '01 · TAROT',
+    archetype: '',
+    gender: 'female' as TestimonialGender,
+    quote: '',
+  });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const SLIDE_DURATION = 8000; // 8 seconds slow contemplative cycle
 
   useEffect(() => {
     let active = true;
-    fetchSupabaseTable<TestimonialItem>('testimonials', 'select=*').then((remoteRows) => {
+    fetchSupabaseTable<Record<string, any>>('testimonials', 'select=*&order=created_at.desc').then((remoteRows) => {
       if (!active || !remoteRows || remoteRows.length === 0) return;
       const byId = new Map<string, TestimonialItem>();
-      TESTIMONIALS.forEach((t) => byId.set(t.id, t));
+      const localSaved = getLocalRecords<TestimonialItem>('narmer_local_testimonials');
+      localSaved.forEach((t) => byId.set(t.id, t));
       remoteRows.forEach((row) => {
         if (row.id && row.quote && row.author) {
-          byId.set(row.id, { ...byId.get(row.id), ...row });
+          const normalized: TestimonialItem = {
+            id: String(row.id),
+            quote: String(row.quote),
+            author: String(row.author),
+            role: String(row.role || 'Consultante'),
+            location: String(row.location || 'Online'),
+            sessionType: String(row.sessionType || row.session_type || '01 · TAROT'),
+            archetype: String(row.archetype || 'Símbolo Vivo'),
+            year: String(row.year || new Date().getFullYear()),
+            gender: (row.gender as TestimonialGender) || undefined,
+            avatarUrl: row.avatarUrl || row.avatar_url || undefined,
+          };
+          byId.set(normalized.id, normalized);
         }
+      });
+      TESTIMONIALS.forEach((t) => {
+        if (!byId.has(t.id)) byId.set(t.id, t);
       });
       setItems(Array.from(byId.values()));
     });
@@ -417,6 +448,67 @@ export const TestimonialsSection: React.FC = () => {
       active = false;
     };
   }, []);
+
+  const handleSubmitResonancia = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.author.trim() || !form.quote.trim()) return;
+    setSaving(true);
+
+    const yearStr = String(new Date().getFullYear());
+    const newId = `res-${Date.now()}`;
+    const newItem: TestimonialItem = {
+      id: newId,
+      author: form.author.trim(),
+      role: form.role.trim() || 'Consultante',
+      location: form.location.trim() || 'Consulta Online',
+      sessionType: form.sessionType,
+      archetype: form.archetype.trim() || 'Resonancia Simbólica',
+      year: yearStr,
+      gender: form.gender,
+      quote: form.quote.trim(),
+    };
+
+    // Guardar respaldo local inmediato y actualizar vista
+    appendLocalRecord('narmer_local_testimonials', newItem);
+    setItems((prev) => [newItem, ...prev.filter((item) => item.id !== newItem.id)]);
+    setCurrentIndex(0);
+    setIsPaused(true);
+
+    // Guardar en Supabase Database (tabla `testimonials`)
+    const result = await insertSupabaseRecord('testimonials', {
+      id: newItem.id,
+      author: newItem.author,
+      role: newItem.role,
+      location: newItem.location,
+      session_type: newItem.sessionType,
+      archetype: newItem.archetype,
+      year: newItem.year,
+      gender: newItem.gender,
+      quote: newItem.quote,
+      created_at: new Date().toISOString(),
+    });
+
+    setSaving(false);
+    setSavedNotice(
+      result.ok
+        ? 'Tu resonancia fue guardada en Supabase y publicada en el archivo.'
+        : 'Tu resonancia quedó publicada y guardada en el archivo del Gabinete.'
+    );
+
+    setTimeout(() => {
+      setIsModalOpen(false);
+      setSavedNotice(null);
+      setForm({
+        author: '',
+        role: '',
+        location: '',
+        sessionType: '01 · TAROT',
+        archetype: '',
+        gender: 'female',
+        quote: '',
+      });
+    }, 1500);
+  };
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % items.length);
@@ -493,7 +585,15 @@ export const TestimonialsSection: React.FC = () => {
           </div>
 
           {/* Navigation Controls: Discreet, Minimalist & Tactile */}
-          <div className="flex items-center gap-3 self-start md:self-end">
+          <div className="flex flex-wrap items-center gap-3 self-start md:self-end">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-4 py-2 rounded-full border border-[#00B3A4]/60 bg-[#2A0E34]/50 hover:bg-[#2A0E34] text-[#E8D7A6] font-clean text-[10px] tracking-[0.18em] uppercase transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(0,179,164,0.2)]"
+            >
+              <Feather className="w-3.5 h-3.5 text-[#00B3A4]" />
+              <span>Dejar una resonancia</span>
+            </button>
+
             <button
               onClick={() => setIsPaused((prev) => !prev)}
               className="p-2 text-[#E8D7A6]/60 hover:text-[#00B3A4] transition-colors border border-[#E8D7A6]/20 rounded-full"
@@ -638,6 +738,169 @@ export const TestimonialsSection: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* Modal para Escribir y Guardar una Resonancia / Comentario en Supabase */}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-lg bg-[#0D1B2A] border border-[#00B3A4]/45 p-7 sm:p-9 text-left my-auto shadow-2xl rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-5 right-5 p-2 text-[#E8D7A6]/70 hover:text-[#00B3A4] transition-colors"
+              aria-label="Cerrar formulario de resonancia"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-6">
+              <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-[#00B3A4] block mb-1 font-bold">
+                Capítulo IV · Resonancias & Huellas
+              </span>
+              <h3 className="font-editorial text-2xl sm:text-3xl text-[#E8D7A6] font-normal">
+                Compartir tu experiencia simbólica.
+              </h3>
+              <p className="font-editorial text-sm text-[#E8D7A6]/75 mt-1 font-light">
+                Tu comentario se guardará en el archivo de resonancias del Gabinete Narmer.
+              </p>
+            </div>
+
+            {savedNotice ? (
+              <div className="py-8 text-center space-y-4">
+                <div className="w-12 h-12 mx-auto rounded-full border border-[#00B3A4] flex items-center justify-center text-[#00B3A4] bg-[#2A0E34]/60">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <p className="font-editorial text-lg text-[#E8D7A6]">{savedNotice}</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitResonancia} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                      Tu Nombre o Iniciales *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={form.author}
+                      onChange={(e) => setForm({ ...form, author: e.target.value })}
+                      placeholder="Ej. Clara M."
+                      className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                      Ocupación o Rol
+                    </label>
+                    <input
+                      type="text"
+                      value={form.role}
+                      onChange={(e) => setForm({ ...form, role: e.target.value })}
+                      placeholder="Ej. Arquitecta / Docente"
+                      className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                      Ciudad / País
+                    </label>
+                    <input
+                      type="text"
+                      value={form.location}
+                      onChange={(e) => setForm({ ...form, location: e.target.value })}
+                      placeholder="Ej. Córdoba / Buenos Aires"
+                      className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                      Consulta Realizada
+                    </label>
+                    <select
+                      value={form.sessionType}
+                      onChange={(e) => setForm({ ...form, sessionType: e.target.value })}
+                      className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                    >
+                      <option value="01 · TAROT">01 · TAROT</option>
+                      <option value="02 · PSICOASTROLOGÍA">02 · PSICOASTROLOGÍA</option>
+                      <option value="03 · TAROT + CARTA NATAL">03 · TAROT + CARTA NATAL</option>
+                      <option value="04 · BIODECODIFICACIÓN">04 · BIODECODIFICACIÓN</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                      Arquetipo o Símbolo (Opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={form.archetype}
+                      onChange={(e) => setForm({ ...form, archetype: e.target.value })}
+                      placeholder="Ej. La Sacerdotisa · Casa IV"
+                      className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                      Medallón de Perfil Egipcio
+                    </label>
+                    <select
+                      value={form.gender}
+                      onChange={(e) => setForm({ ...form, gender: e.target.value as TestimonialGender })}
+                      className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded"
+                    >
+                      <option value="female">Perfil Femenino (Sacerdotisa)</option>
+                      <option value="male">Perfil Masculino (Escriba Solar)</option>
+                      <option value="couple">Consulta Vincular / Pareja</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-clean text-[#E8D7A6]/80 block mb-1">
+                    Tu Comentario / Resonancia *
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={form.quote}
+                    onChange={(e) => setForm({ ...form, quote: e.target.value })}
+                    placeholder="Escribe aquí lo que la lectura o el mapa despertó en ti..."
+                    className="w-full bg-[#070F18] border border-[#7A7A7A]/40 focus:border-[#00B3A4] p-2.5 text-xs font-clean text-[#E8D7A6] focus:outline-none rounded resize-none"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-xs font-clean uppercase tracking-wider text-[#7A7A7A] hover:text-[#E8D7A6]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-6 py-2.5 border border-[#00B3A4] bg-[#2A0E34] hover:bg-[#1E0926] text-[#E8D7A6] font-clean text-xs uppercase tracking-[0.2em] transition-colors flex items-center gap-2 rounded shadow-[0_0_15px_rgba(0,179,164,0.25)]"
+                  >
+                    <Feather className="w-3.5 h-3.5 text-[#00B3A4]" />
+                    <span>{saving ? 'Guardando...' : 'Publicar Resonancia'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 };

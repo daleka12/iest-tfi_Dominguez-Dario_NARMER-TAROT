@@ -1,40 +1,73 @@
 /**
- * Capa de integración ligera con Supabase (Storage & Database REST API)
+ * Capa de integración con Supabase (Storage & Database REST API) + Respaldo Local y Notificación por Email
  *
- * - No requiere modificar credenciales existentes ni rompe la aplicación si las
- *   variables de entorno aún no están configuradas.
- * - Cuando VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY están presentes en el entorno,
- *   habilita la carga de fotografías/videos desde Supabase Storage y la sincronización
- *   de datos y reservas con Supabase Database sin duplicar estructuras existentes.
+ * Tablas soportadas en Supabase:
+ * 1. `testimonials` -> Comentarios y resonancias en Capítulo IV (Resonancias & Huellas)
+ * 2. `essays`       -> Ensayos y notas editoriales en Capítulo V (Ensayos & Apuntes)
+ * 3. `essay_notes`  -> Apuntes y notas al margen dentro de cada ensayo del Capítulo V
+ * 4. `bookings`     -> Reservas de sesiones con envío de notificación a dalekavideos@gmail.com
  */
+
+export const OWNER_NOTIFICATION_EMAIL = 'dalekavideos@gmail.com';
 
 const getEnvVar = (key: string): string => {
   try {
     const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
-    return env?.[key]?.trim() || '';
+    const fromEnv = env?.[key]?.trim();
+    if (fromEnv) return fromEnv;
   } catch {
-    return '';
+    // Ignorar si import.meta no está disponible
   }
+
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (key === 'VITE_SUPABASE_URL') {
+        return window.localStorage.getItem('narmer_supabase_url')?.trim() || '';
+      }
+      if (key === 'VITE_SUPABASE_ANON_KEY') {
+        return window.localStorage.getItem('narmer_supabase_anon_key')?.trim() || '';
+      }
+    }
+  } catch {
+    // Ignorar errores de acceso a localStorage
+  }
+
+  return '';
 };
 
-export const SUPABASE_URL = getEnvVar('VITE_SUPABASE_URL');
-export const SUPABASE_ANON_KEY = getEnvVar('VITE_SUPABASE_ANON_KEY');
+export const getSupabaseUrl = (): string => getEnvVar('VITE_SUPABASE_URL');
+export const getSupabaseAnonKey = (): string => getEnvVar('VITE_SUPABASE_ANON_KEY');
+
+export const SUPABASE_URL = getSupabaseUrl();
+export const SUPABASE_ANON_KEY = getSupabaseAnonKey();
 
 export const isSupabaseConfigured = (): boolean => {
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
   return Boolean(
-    SUPABASE_URL &&
-      SUPABASE_ANON_KEY &&
-      SUPABASE_URL.startsWith('http') &&
-      !SUPABASE_URL.includes('YOUR_') &&
-      !SUPABASE_ANON_KEY.includes('YOUR_')
+    url &&
+      key &&
+      url.startsWith('http') &&
+      !url.includes('YOUR_') &&
+      !key.includes('YOUR_')
   );
+};
+
+export const saveSupabaseCredentialsLocal = (url: string, anonKey: string): void => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('narmer_supabase_url', url.trim());
+      window.localStorage.setItem('narmer_supabase_anon_key', anonKey.trim());
+    }
+  } catch {
+    // Ignorar si localStorage está bloqueado
+  }
 };
 
 export type StorageBucketName = 'cards' | 'brand' | 'space' | 'essays' | 'sessions' | 'testimonials' | string;
 
 /**
- * Construye la URL pública de un archivo (fotografía o video) alojado en Supabase Storage.
- * Si `pathOrUrl` ya es una URL completa (http/https), la devuelve directamente.
+ * Construye la URL pública de un archivo alojado en Supabase Storage.
  */
 export const getSupabaseStorageUrl = (
   bucket: StorageBucketName,
@@ -48,11 +81,12 @@ export const getSupabaseStorageUrl = (
     return trimmed;
   }
 
-  if (!SUPABASE_URL || !SUPABASE_URL.startsWith('http')) {
+  const url = getSupabaseUrl();
+  if (!url || !url.startsWith('http')) {
     return null;
   }
 
-  const baseUrl = SUPABASE_URL.replace(/\/+$/, '');
+  const baseUrl = url.replace(/\/+$/, '');
   const cleanBucket = bucket.replace(/^\/+|\/+$/g, '');
   const cleanPath = trimmed.replace(/^\/+/, '');
 
@@ -69,9 +103,38 @@ export const isVideoAsset = (urlOrPath?: string | null): boolean => {
 };
 
 /**
+ * Lee registros guardados localmente en el navegador como respaldo inmediato.
+ */
+export function getLocalRecords<T>(storageKey: string): T[] {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return [];
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Guarda un registro en localStorage para persistencia inmediata aún sin conexión.
+ */
+export function appendLocalRecord<T>(storageKey: string, record: T): T[] {
+  try {
+    const current = getLocalRecords<T>(storageKey);
+    const updated = [record, ...current];
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(storageKey, JSON.stringify(updated));
+    }
+    return updated;
+  } catch {
+    return [record];
+  }
+}
+
+/**
  * Consulta registros de una tabla en Supabase Database mediante PostgREST.
- * Devuelve `null` de forma silenciosa si Supabase no está configurado o si ocurre un error,
- * permitiendo que los componentes conserven sus datos editoriales originales sin duplicarlos.
  */
 export async function fetchSupabaseTable<T>(
   table: string,
@@ -80,12 +143,13 @@ export async function fetchSupabaseTable<T>(
   if (!isSupabaseConfigured()) return null;
 
   try {
-    const baseUrl = SUPABASE_URL.replace(/\/+$/, '');
+    const baseUrl = getSupabaseUrl().replace(/\/+$/, '');
+    const anonKey = getSupabaseAnonKey();
     const response = await fetch(`${baseUrl}/rest/v1/${table}?${queryParams}`, {
       method: 'GET',
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
         Accept: 'application/json',
       },
     });
@@ -99,24 +163,24 @@ export async function fetchSupabaseTable<T>(
 }
 
 /**
- * Inserta un registro en una tabla de Supabase Database (ej. reservas de sesiones o consultas).
- * Operación segura y no bloqueante.
+ * Inserta un registro en una tabla de Supabase Database (testimonials, essays, essay_notes, bookings).
  */
 export async function insertSupabaseRecord(
   table: string,
   payload: Record<string, unknown>
 ): Promise<{ ok: boolean; error?: string }> {
   if (!isSupabaseConfigured()) {
-    return { ok: false, error: 'Supabase no configurado aún' };
+    return { ok: false, error: 'Supabase en modo local (pendiente configurar credenciales)' };
   }
 
   try {
-    const baseUrl = SUPABASE_URL.replace(/\/+$/, '');
+    const baseUrl = getSupabaseUrl().replace(/\/+$/, '');
+    const anonKey = getSupabaseAnonKey();
     const response = await fetch(`${baseUrl}/rest/v1/${table}`, {
       method: 'POST',
       headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
         'Content-Type': 'application/json',
         Prefer: 'return=minimal',
       },
@@ -124,7 +188,8 @@ export async function insertSupabaseRecord(
     });
 
     if (!response.ok) {
-      return { ok: false, error: `HTTP ${response.status}` };
+      const errText = await response.text().catch(() => '');
+      return { ok: false, error: `HTTP ${response.status} ${errText}` };
     }
     return { ok: true };
   } catch (err) {
@@ -132,3 +197,72 @@ export async function insertSupabaseRecord(
   }
 }
 
+export interface BookingEmailPayload {
+  session_type: string;
+  client_name: string;
+  client_email: string;
+  preferred_date: string;
+  preferred_time: string;
+  notes: string;
+  created_at: string;
+}
+
+/**
+ * Envía automáticamente los datos de la reserva al correo dalekavideos@gmail.com
+ * mediante FormSubmit AJAX y genera el enlace mailto de respaldo.
+ */
+export async function sendBookingEmailToOwner(
+  booking: BookingEmailPayload
+): Promise<{ ok: boolean }> {
+  try {
+    const response = await fetch(`https://formsubmit.co/ajax/${OWNER_NOTIFICATION_EMAIL}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        _subject: `✦ Nueva Reserva NARMER: ${booking.session_type} — ${booking.client_name}`,
+        _template: 'table',
+        _captcha: 'false',
+        Consultante: booking.client_name,
+        Email_Consultante: booking.client_email,
+        Sesion_Solicitada: booking.session_type,
+        Fecha_Tentativa: booking.preferred_date || 'A coordinar',
+        Horario_Preferido: `${booking.preferred_time} hs`,
+        Mensaje_o_Inquietud: booking.notes || 'Sin notas adicionales',
+        Fecha_Registro: booking.created_at,
+      }),
+    });
+
+    return { ok: response.ok };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/**
+ * Construye un enlace mailto: directo hacia dalekavideos@gmail.com con el detalle de la reserva.
+ */
+export function buildBookingMailtoUrl(booking: BookingEmailPayload): string {
+  const subject = encodeURIComponent(
+    `Reserva de Consulta NARMER · ${booking.session_type} (${booking.client_name})`
+  );
+  const body = encodeURIComponent(
+    [
+      'Hola Narmer,',
+      '',
+      'Te envío los datos de mi solicitud de reserva en el Gabinete:',
+      '',
+      `• Consultante: ${booking.client_name}`,
+      `• Correo de contacto: ${booking.client_email}`,
+      `• Sesión solicitada: ${booking.session_type}`,
+      `• Fecha tentativa: ${booking.preferred_date || 'A coordinar'}`,
+      `• Franja horaria: ${booking.preferred_time} hs`,
+      `• Inquietud / Nota: ${booking.notes || 'Sin notas adicionales'}`,
+      '',
+      'Muchas gracias.',
+    ].join('\n')
+  );
+  return `mailto:${OWNER_NOTIFICATION_EMAIL}?subject=${subject}&body=${body}`;
+}
