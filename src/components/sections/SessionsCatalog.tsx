@@ -16,6 +16,7 @@ interface SessionCatalogItem {
   deliverables: string[];
   quote: string;
   mediaUrl?: string;
+  localFallbackSrc?: string;
   mediaType?: 'image' | 'video' | 'auto';
 }
 
@@ -39,6 +40,8 @@ const DEFAULT_SESSIONS: SessionCatalogItem[] = [
         'Fotografía en alta resolución de la mesa de arcanos',
       ],
       quote: '«El arcano te nombra antes de que tú puedas defenderte.»',
+      mediaUrl: 'sesion-01-tarot.jpg',
+      localFallbackSrc: './cards/sesion-01-tarot.jpg?v=2',
     },
     {
       index: '02',
@@ -55,6 +58,8 @@ const DEFAULT_SESSIONS: SessionCatalogItem[] = [
         'Grabación completa de la sesión para revisión periódica',
       ],
       quote: '«La carta natal es el pentagrama sobre el cual compones tu propia melodía.»',
+      mediaUrl: 'sesion-02-psicoastrologia.jpg',
+      localFallbackSrc: './cards/sesion-02-psicoastrologia.jpg?v=2',
     },
     {
       index: '03',
@@ -71,6 +76,8 @@ const DEFAULT_SESSIONS: SessionCatalogItem[] = [
         'Audio HD y registro fotográfico de la sesión',
       ],
       quote: '«Como es arriba, es abajo; como es adentro, es afuera.»',
+      mediaUrl: 'sesion-03-tarot-carta-natal.jpg',
+      localFallbackSrc: './cards/sesion-03-tarot-carta-natal.jpg?v=2',
     },
   ];
 
@@ -101,28 +108,50 @@ export const SessionsCatalog: React.FC<SessionsCatalogProps> = ({ onBookSession 
       <div className="absolute inset-0 paper-grain opacity-35 pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
-        {/* Section Header */}
-        <div className="max-w-3xl mb-20 text-left">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="w-6 h-[1.5px] bg-[#00B3A4]" />
-            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#00B3A4]">
-              Capítulo III · Catálogo de Consultas
-            </span>
+        {/* Section Header with Sesiones de Interpretación Emblem */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center mb-20">
+          <div className="lg:col-span-7 text-left">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="w-6 h-[1.5px] bg-[#00B3A4]" />
+              <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#00B3A4]">
+                Capítulo III · Catálogo de Consultas
+              </span>
+            </div>
+
+            <EditorialBlurredHeading
+              as="h2"
+              delay={0.12}
+              duration={1.2}
+              blurAmount={12}
+              className="font-editorial text-4xl sm:text-5xl md:text-6xl text-[#E8D7A6] font-normal leading-[1.1]"
+            >
+              Sesiones de interpretación.
+            </EditorialBlurredHeading>
+
+            <p className="mt-4 font-editorial text-lg sm:text-xl text-[#E8D7A6]/85 font-light leading-relaxed max-w-2xl">
+              Cada consulta es un espacio confidencial, pausado y riguroso. Sin fórmulas prefabricadas ni juicios morales.
+            </p>
           </div>
 
-          <EditorialBlurredHeading
-            as="h2"
-            delay={0.12}
-            duration={1.2}
-            blurAmount={12}
-            className="font-editorial text-4xl sm:text-5xl md:text-6xl text-[#E8D7A6] font-normal leading-[1.1]"
-          >
-            Sesiones de interpretación.
-          </EditorialBlurredHeading>
-
-          <p className="mt-4 font-editorial text-lg sm:text-xl text-[#E8D7A6]/85 font-light leading-relaxed">
-            Cada consulta es un espacio confidencial, pausado y riguroso. Sin fórmulas prefabricadas ni juicios morales.
-          </p>
+          <div className="lg:col-span-5 flex justify-center lg:justify-end">
+            <div className="w-full max-w-[300px] sm:max-w-[350px] aspect-square rounded-2xl overflow-hidden border border-[#00B3A4]/40 bg-[#08121D] shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_25px_rgba(0,179,164,0.2)]">
+              <SupabaseMedia
+                bucket="sessions"
+                storagePath="sesiones-interpretacion.jpg"
+                localFallbackSrc="./cards/sesiones-interpretacion.jpg?v=2"
+                localStorageKey="narmer_sesiones_header_img_v2"
+                alt="Sesiones de Interpretación · Narmer Tarot y Psicoastrología"
+                mediaClassName="w-full h-full object-contain rounded-2xl select-none"
+                fallbackContent={
+                  <img
+                    src="./cards/sesiones-interpretacion.jpg?v=2"
+                    alt="Sesiones de Interpretación · Narmer Tarot y Psicoastrología"
+                    className="w-full h-full object-contain rounded-2xl select-none"
+                  />
+                }
+              />
+            </div>
+          </div>
         </div>
 
         {/* Monograph Style List: Each session is a generous editorial spread */}
@@ -130,15 +159,15 @@ export const SessionsCatalog: React.FC<SessionsCatalogProps> = ({ onBookSession 
           {sessions.map((session) => (
             <div
               key={session.index}
-              className="border-t border-[#7A7A7A]/30 pt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start group"
+              className="border-t border-[#7A7A7A]/30 pt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-start group"
             >
-              {/* Left Column: Number & Big Title (Cols 1-4) */}
-              <div className="lg:col-span-4 space-y-3">
+              {/* Left Column: Number & Big Title (Cols 1-5) */}
+              <div className="lg:col-span-5 min-w-0 lg:pr-4 space-y-3">
                 <span className="font-mono text-xs sm:text-sm tracking-[0.3em] text-[#00B3A4] block font-bold">
                   {session.index}
                 </span>
 
-                <h3 className="font-editorial text-3xl sm:text-4xl md:text-5xl text-[#E8D7A6] font-normal tracking-wide">
+                <h3 className="font-editorial text-2xl sm:text-3xl lg:text-[28px] xl:text-[32px] text-[#E8D7A6] font-normal tracking-normal leading-[1.15] break-words">
                   {session.title}
                 </h3>
 
@@ -146,29 +175,41 @@ export const SessionsCatalog: React.FC<SessionsCatalogProps> = ({ onBookSession 
                   «{session.subtitle}»
                 </p>
 
-                <div className="pt-2 flex items-center gap-4 text-xs font-mono text-[#E8D7A6]/70">
+                <div className="pt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono text-[#E8D7A6]/70">
                   <span className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-[#00B3A4]" /> {session.duration}
                   </span>
                   <span className="text-[#7A7A7A]">·</span>
                   <span className="text-[#E8D7A6] font-semibold">{session.investment}</span>
                 </div>
-              </div>
 
-              {/* Right Column: Narrative, Deliverables & Booking Action (Cols 5-12) */}
-              <div className="lg:col-span-8 space-y-6">
-                {session.mediaUrl && (
-                  <div className="aspect-[16/9] w-full max-w-xl overflow-hidden border border-[#00B3A4]/30 bg-[#08121D]">
-                    <SupabaseMedia
-                      bucket="sessions"
-                      storagePath={session.mediaUrl}
-                      mediaType={session.mediaType || 'auto'}
-                      alt={`Sesión ${session.title}`}
-                      mediaClassName="w-full h-full object-cover"
-                    />
+                {(session.mediaUrl || session.localFallbackSrc) && (
+                  <div className="pt-3">
+                    <div className="aspect-[1024/571] w-full rounded-xl overflow-hidden border border-[#00B3A4]/40 bg-[#08121D] shadow-[0_12px_30px_rgba(0,0,0,0.65),0_0_18px_rgba(0,179,164,0.18)]">
+                      <SupabaseMedia
+                        bucket="sessions"
+                        storagePath={session.mediaUrl}
+                        localFallbackSrc={session.localFallbackSrc}
+                        mediaType={session.mediaType || 'auto'}
+                        alt={`Sesión ${session.title}`}
+                        mediaClassName="w-full h-full object-contain rounded-xl select-none"
+                        fallbackContent={
+                          session.localFallbackSrc ? (
+                            <img
+                              src={session.localFallbackSrc}
+                              alt={`Sesión ${session.title}`}
+                              className="w-full h-full object-contain rounded-xl select-none"
+                            />
+                          ) : null
+                        }
+                      />
+                    </div>
                   </div>
                 )}
+              </div>
 
+              {/* Right Column: Narrative, Deliverables & Booking Action (Cols 6-12) */}
+              <div className="lg:col-span-7 min-w-0 space-y-6">
                 <p className="font-editorial text-base sm:text-lg text-[#E8D7A6]/90 leading-relaxed font-light">
                   {session.description}
                 </p>
@@ -209,10 +250,10 @@ export const SessionsCatalog: React.FC<SessionsCatalogProps> = ({ onBookSession 
           ))}
 
           {/* UPCOMING SERVICE: 04 · BIODECODIFICACIÓN */}
-          <div className="border-t border-[#00B3A4]/40 pt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative bg-[#130A1A]/40 p-6 sm:p-8 rounded-2xl border border-dashed border-[#00B3A4]/35 shadow-[0_0_30px_rgba(0,179,164,0.08)]">
+          <div className="border-t border-[#00B3A4]/40 pt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-start relative bg-[#130A1A]/40 p-6 sm:p-8 rounded-2xl border border-dashed border-[#00B3A4]/35 shadow-[0_0_30px_rgba(0,179,164,0.08)]">
             {/* Left Column: Number & Big Title */}
-            <div className="lg:col-span-4 space-y-3">
-              <div className="flex items-center gap-2">
+            <div className="lg:col-span-5 min-w-0 lg:pr-4 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-xs sm:text-sm tracking-[0.3em] text-[#00B3A4] font-bold">
                   04
                 </span>
@@ -221,7 +262,7 @@ export const SessionsCatalog: React.FC<SessionsCatalogProps> = ({ onBookSession 
                 </span>
               </div>
 
-              <h3 className="font-editorial text-3xl sm:text-4xl md:text-5xl text-[#E8D7A6] font-normal tracking-wide flex items-center gap-2">
+              <h3 className="font-editorial text-2xl sm:text-3xl lg:text-[28px] xl:text-[32px] text-[#E8D7A6] font-normal tracking-normal leading-[1.15] break-words">
                 <span>BIODECODIFICACIÓN</span>
               </h3>
 
@@ -229,17 +270,37 @@ export const SessionsCatalog: React.FC<SessionsCatalogProps> = ({ onBookSession 
                 «El cuerpo expresa lo que el alma calla.»
               </p>
 
-              <div className="pt-2 flex items-center gap-4 text-xs font-mono text-[#E8D7A6]/70">
+              <div className="pt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-[#E8D7A6]/70">
                 <span className="flex items-center gap-1.5 text-[#00B3A4]">
                   <Dna className="w-3.5 h-3.5" /> Nueva disciplina terapéutica
                 </span>
                 <span className="text-[#7A7A7A]">·</span>
                 <span className="text-[#E8D7A6]/80 font-semibold">En preparación</span>
               </div>
+
+              <div className="pt-3">
+                <div className="aspect-[1024/571] w-full rounded-xl overflow-hidden border border-[#00B3A4]/40 bg-[#08121D] shadow-[0_12px_30px_rgba(0,0,0,0.65),0_0_18px_rgba(0,179,164,0.18)]">
+                  <SupabaseMedia
+                    bucket="sessions"
+                    storagePath="sesion-04-biodecodificacion.jpg"
+                    localFallbackSrc="./cards/sesion-04-biodecodificacion.jpg?v=2"
+                    localStorageKey="narmer_sesion_04_img_v2"
+                    alt="Sesión BIODECODIFICACIÓN · Narmer Tarot y Psicoastrología"
+                    mediaClassName="w-full h-full object-contain rounded-xl select-none"
+                    fallbackContent={
+                      <img
+                        src="./cards/sesion-04-biodecodificacion.jpg?v=2"
+                        alt="Sesión BIODECODIFICACIÓN · Narmer Tarot y Psicoastrología"
+                        className="w-full h-full object-contain rounded-xl select-none"
+                      />
+                    }
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Right Column: Narrative, Deliverables & Notification Action */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-7 min-w-0 space-y-6">
               <p className="font-editorial text-base sm:text-lg text-[#E8D7A6]/90 leading-relaxed font-light">
                 Un abordaje terapéutico integral que explora el origen emocional, psicosomático y transgeneracional
                 de los síntomas físicos y los bloqueos recurrentes. A través de la decodificación biológica de las dolencias

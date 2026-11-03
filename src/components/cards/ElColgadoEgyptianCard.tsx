@@ -1,6 +1,19 @@
 import React from 'react';
 
 export const ElColgadoEgyptianCard: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const [imgError, setImgError] = React.useState(false);
+
+  if (!imgError) {
+    return (
+      <img
+        src="./cards/12.jpg"
+        alt="Arcano XII · El Colgado (El Apostolado)"
+        onError={() => setImgError(true)}
+        className={`w-full h-full object-contain rounded-xl select-none ${className}`}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 450 780"

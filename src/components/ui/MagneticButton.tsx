@@ -72,9 +72,7 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
       onMouseLeave={handleMouseLeave}
       style={{ x, y }}
       aria-label={ariaLabel}
-      className={`relative inline-flex items-center justify-center transition-shadow duration-300 ${className} ${
-        isHovered ? 'md:cursor-none' : ''
-      }`}
+      className={`relative inline-flex items-center justify-center transition-shadow duration-300 cursor-pointer ${className}`}
     >
       {/* Subtle internal magnetic sheen / reflection shift */}
       <span className="relative z-10 flex items-center justify-center w-full gap-2">

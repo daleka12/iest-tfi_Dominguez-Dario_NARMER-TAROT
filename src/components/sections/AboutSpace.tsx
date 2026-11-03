@@ -37,54 +37,40 @@ export const AboutSpace: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           {/* Left Column: Portrait & Studio Vignette (Magazine feel, ready for Supabase Storage photo or video) */}
           <div className="lg:col-span-5 relative">
-            <div className="relative p-3 border border-[#00B3A4]/35 bg-[#170B24] transform lg:-rotate-1 shadow-2xl">
+            <div className="relative p-3 sm:p-4 border border-[#00B3A4]/35 bg-[#170B24] transform lg:-rotate-1 shadow-2xl">
               {/* Artistic Analog Portrait / Video Container */}
-              <div className="relative aspect-[3/4] w-full bg-[#0D1B2A] overflow-hidden flex flex-col justify-end p-6 border border-[#E8D7A6]/15">
-                {/* Atmospheric analog lighting simulation */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0D1B2A] via-[#0D1B2A]/40 to-transparent z-10 pointer-events-none" />
+              <div className="relative aspect-[686/1024] w-full bg-[#0D1B2A] rounded-xl overflow-hidden border border-[#E8D7A6]/15">
+                {/* Supabase Storage Photograph / Video with Local Image Fallback */}
+                <SupabaseMedia
+                  bucket="space"
+                  storagePath={spaceMedia.storage_path}
+                  localFallbackSrc="./cards/gabinete-narmer.jpg?v=2"
+                  localStorageKey="narmer_space_media"
+                  mediaType={spaceMedia.media_type || 'auto'}
+                  alt="Gabinete Narmer · Tarot y Psicoastrología"
+                  mediaClassName="w-full h-full object-contain rounded-xl select-none"
+                  fallbackContent={
+                    <img
+                      src="./cards/gabinete-narmer.jpg?v=2"
+                      alt="Gabinete Narmer · Tarot y Psicoastrología"
+                      className="w-full h-full object-contain rounded-xl select-none"
+                    />
+                  }
+                />
+              </div>
 
-                {/* Supabase Storage Photograph / Video with SVG Engraving Fallback */}
-                <div className="absolute inset-0 z-0">
-                  <SupabaseMedia
-                    bucket="space"
-                    storagePath={spaceMedia.storage_path}
-                    localStorageKey="narmer_space_media"
-                    mediaType={spaceMedia.media_type || 'auto'}
-                    alt="Gabinete Narmer · Espacio de escucha y silencio"
-                    mediaClassName="w-full h-full object-cover select-none opacity-85"
-                    fallbackContent={
-                      <svg
-                        viewBox="0 0 300 400"
-                        className="w-full h-full object-cover opacity-60 mix-blend-screen select-none pointer-events-none"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <circle cx="150" cy="140" r="90" stroke="#00B3A4" strokeWidth="0.8" strokeDasharray="3 4" opacity="0.4" />
-                        {/* Candle flame */}
-                        <path d="M 150,110 Q 155,100 150,90 Q 145,100 150,110 Z" fill="#E8D7A6" />
-                        <circle cx="150" cy="100" r="16" fill="#00B3A4" fillOpacity="0.15" />
-                        {/* Book & Cards on table */}
-                        <line x1="60" y1="280" x2="240" y2="280" stroke="#E8D7A6" strokeWidth="1" />
-                        <polygon points="100,240 140,250 130,278 90,268" stroke="#7A7A7A" strokeWidth="1" fill="#170B24" />
-                        <polygon points="160,245 200,240 205,270 165,275" stroke="#00B3A4" strokeWidth="1" fill="#2A0E34" />
-                      </svg>
-                    }
-                  />
-                </div>
-
-                {/* Portrait Caption */}
-                <div className="relative z-20 text-left">
-                  <span className="font-mono text-[9px] tracking-[0.25em] text-[#00B3A4] uppercase block">
-                    Gabinete Narmer · Buenos Aires & Online
-                  </span>
-                  <span className="font-editorial text-lg text-[#E8D7A6] font-normal block mt-1">
-                    Archivo de Cartas & Cartografías Celestes
-                  </span>
-                </div>
+              {/* Portrait Caption below image so it never covers the NARMER lettering */}
+              <div className="pt-3.5 px-1 text-left border-t border-[#E8D7A6]/10 mt-3">
+                <span className="font-mono text-[9px] tracking-[0.25em] text-[#00B3A4] uppercase block">
+                  Gabinete Narmer · Buenos Aires & Online
+                </span>
+                <span className="font-editorial text-base sm:text-lg text-[#E8D7A6] font-normal block mt-0.5">
+                  Archivo de Cartas & Cartografías Celestes
+                </span>
               </div>
 
               {/* Tape / Stamp Detail */}
-              <div className="absolute -top-3 left-10 px-3 py-0.5 bg-[#2A0E34] border border-[#00B3A4] text-[#E8D7A6] font-mono text-[8px] tracking-[0.3em] uppercase">
+              <div className="absolute -top-3 left-10 z-20 px-3 py-0.5 bg-[#2A0E34] border border-[#00B3A4] text-[#E8D7A6] font-mono text-[8px] tracking-[0.3em] uppercase">
                 EST. 2014
               </div>
             </div>

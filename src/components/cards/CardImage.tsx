@@ -22,14 +22,14 @@ interface CardImageProps {
 }
 
 const CARD_FILENAME_MAP: Record<SupportedArcanaId, string> = {
-  sacerdotisa: '2.jpeg',
-  ermitano: '9.jpeg',
-  torre: '16.jpeg',
-  colgado: '12.jpeg',
-  luna: '18.jpeg',
-  mago: '1.jpeg',
-  estrella: '17.jpeg',
-  emperador: '4.jpeg',
+  sacerdotisa: '2.jpg',
+  ermitano: '9.jpg',
+  torre: '16.jpg',
+  colgado: '12.jpg',
+  luna: '18.jpg',
+  mago: '1.jpg',
+  estrella: '17.jpg',
+  emperador: '4.jpg',
 };
 
 const LOCAL_STORAGE_KEY_PREFIX = 'narmer_card_img_';
@@ -42,13 +42,13 @@ export const CardImage: React.FC<CardImageProps> = ({
   alt,
   fallbackSvg,
 }) => {
-  const fileName = CARD_FILENAME_MAP[cardId] || 'card.jpeg';
+  const fileName = CARD_FILENAME_MAP[cardId] || 'card.jpg';
 
   return (
     <SupabaseMedia
       bucket="cards"
       storagePath={storagePath || fileName}
-      localFallbackSrc={`/cards/${fileName}`}
+      localFallbackSrc={`./cards/${fileName}`}
       localStorageKey={LOCAL_STORAGE_KEY_PREFIX + cardId}
       mediaType={mediaType}
       alt={alt}

@@ -22,10 +22,12 @@ import { BookingEditorialModal } from './components/booking/BookingEditorialModa
 import { EditorialSectionReveal } from './components/ui/EditorialSectionReveal';
 import { EditorialScrollTimeline } from './components/ui/EditorialScrollTimeline';
 import { AnalogFilmGrainOverlay } from './components/ui/AnalogFilmGrainOverlay';
+import { EgyptianSandCarousel } from './components/ui/EgyptianSandCarousel';
 
 export default function App() {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState('01 · TAROT (60 min)');
+  const [galleryCarouselOpen, setGalleryCarouselOpen] = useState(false);
 
   const handleOpenBooking = (sessionTitle?: string) => {
     if (sessionTitle) {
@@ -56,6 +58,7 @@ export default function App() {
         {/* Minimalist Editorial Navigation */}
         <NavbarEditorial
           onOpenBooking={() => handleOpenBooking()}
+          onOpenGallery={() => setGalleryCarouselOpen(true)}
         />
 
         <main className="relative">
@@ -109,6 +112,13 @@ export default function App() {
 
         {/* Floating Minimalist Audio Player Component */}
         <AtmosphericAudioPlayer />
+
+        {/* Carrusel 3D Desplegable con Transición de Arena Difuminada (8 Láminas) */}
+        <EgyptianSandCarousel
+          isOpen={galleryCarouselOpen}
+          onOpen={() => setGalleryCarouselOpen(true)}
+          onClose={() => setGalleryCarouselOpen(false)}
+        />
 
         {/* 9. Footer Artístico */}
         <EditorialSectionReveal showConduit={false}>

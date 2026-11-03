@@ -39,6 +39,19 @@ interface ElEremitaEgyptianCardProps {
 export const ElEremitaEgyptianCard: React.FC<ElEremitaEgyptianCardProps> = ({
   className = '',
 }) => {
+  const [imgError, setImgError] = React.useState(false);
+
+  if (!imgError) {
+    return (
+      <img
+        src="./cards/9.jpg"
+        alt="Arcano IX · El Eremita"
+        onError={() => setImgError(true)}
+        className={`w-full h-full object-contain rounded-xl select-none ${className}`}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 450 780"

@@ -37,6 +37,19 @@ interface LaSacerdotisaEgyptianCardProps {
 export const LaSacerdotisaEgyptianCard: React.FC<LaSacerdotisaEgyptianCardProps> = ({
   className = '',
 }) => {
+  const [imgError, setImgError] = React.useState(false);
+
+  if (!imgError) {
+    return (
+      <img
+        src="./cards/2.jpg"
+        alt="Arcano II · La Sacerdotisa"
+        onError={() => setImgError(true)}
+        className={`w-full h-full object-contain rounded-xl select-none ${className}`}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 450 780"

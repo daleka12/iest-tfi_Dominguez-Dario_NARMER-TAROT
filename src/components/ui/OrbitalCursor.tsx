@@ -297,61 +297,21 @@ export const OrbitalCursor: React.FC = () => {
         </svg>
       </div>
 
-      {/* Center Horus Eye / Solar Udyat Cursor Needle */}
+      {/* Center Sacred Ankh (Cruz Egipcia) Glow Accent */}
       <div
-        className="fixed transform -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none transition-transform duration-200"
+        className="fixed transform -translate-x-1/2 -translate-y-[3px] z-20 pointer-events-none transition-transform duration-150"
         style={{
           left: `${pos.x}px`,
           top: `${pos.y}px`,
         }}
       >
-        <svg
-          width={isPointer ? '26' : '20'}
-          height={isPointer ? '26' : '20'}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="transition-all duration-200 drop-shadow-[0_0_6px_rgba(0,179,164,0.6)]"
-        >
-          {/* Ojo de Horus estilizado / Símbolo sagrado de Ra */}
-          {/* Eyebrow / Arco superior del ojo */}
-          <path
-            d="M 3 9 C 7 5, 17 5, 21 9"
-            stroke={isPointer ? '#00B3A4' : '#E8D7A6'}
-            strokeWidth="1.2"
-            strokeLinecap="round"
-          />
-
-          {/* Contorno del ojo almendrado */}
-          <path
-            d="M 4 10 C 8 6, 16 6, 20 10 C 16 14, 8 14, 4 10 Z"
-            stroke={isPointer ? '#00B3A4' : '#E8D7A6'}
-            strokeWidth="1"
-            fill={isPointer ? '#2A0E34' : 'transparent'}
-          />
-
-          {/* Pupila / Disco Solar Central */}
-          <circle
-            cx="12"
-            cy="10"
-            r={isMouseDown ? '2' : isPointer ? '2.5' : '1.8'}
-            fill={isPointer ? '#00B3A4' : '#E8D7A6'}
-          />
-
-          {/* Lágrima y espiral sagrada del halcón de Horus */}
-          <path
-            d="M 12 14 L 12 19"
-            stroke={isPointer ? '#00B3A4' : '#E8D7A6'}
-            strokeWidth="1"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 15 13 C 17 15, 17 17, 15 18 C 13.5 19, 13 18, 14 17"
-            stroke={isPointer ? '#00B3A4' : '#7A7A7A'}
-            strokeWidth="0.8"
-            strokeLinecap="round"
-          />
-        </svg>
+        <div
+          className={`rounded-full transition-all duration-200 ${
+            isPointer
+              ? 'w-5 h-5 bg-[#00B3A4]/25 blur-[6px]'
+              : 'w-3.5 h-3.5 bg-[#E8D7A6]/20 blur-[5px]'
+          }`}
+        />
       </div>
     </div>
   );

@@ -1,6 +1,19 @@
 import React from 'react';
 
 export const LaTorreEgyptianCard: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const [imgError, setImgError] = React.useState(false);
+
+  if (!imgError) {
+    return (
+      <img
+        src="./cards/16.jpg"
+        alt="Arcano XVI · La Torre (La Fragilidad)"
+        onError={() => setImgError(true)}
+        className={`w-full h-full object-contain rounded-xl select-none ${className}`}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 450 780"

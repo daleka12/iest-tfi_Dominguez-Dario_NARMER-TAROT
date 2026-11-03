@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Compass, Sparkles, MapPin, Clock, Calendar, Check, ArrowRight } from 'lucide-react';
 import { EditorialBlurredHeading } from '../ui/EditorialBlurredHeading';
+import { SupabaseMedia } from '../ui/SupabaseMedia';
 
 interface NatalProfile {
   sun: { sign: string; archetype: string; reflection: string };
@@ -99,60 +100,25 @@ export const PsicoastrologiaMap: React.FC = () => {
               <span className="text-[#00B3A4]">EPHEMERA · NARMER</span>
             </div>
 
-            {/* Custom Abstract Astrological Architectural Geometry */}
-            <div className="relative py-6 flex flex-col items-center justify-center">
-              <svg viewBox="0 0 400 360" className="w-full max-w-[420px] h-auto overflow-visible select-none" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Outer delicate coordinate circle in Crema and Turquoise */}
-                <circle cx="200" cy="180" r="150" stroke="#E8D7A6" strokeWidth="0.6" strokeDasharray="3 5" opacity="0.4" />
-                <circle cx="200" cy="180" r="162" stroke="#00B3A4" strokeWidth="0.5" opacity="0.45" />
-
-                {/* Horizon Axis: Ascendant / Descendant */}
-                <line x1="30" y1="180" x2="370" y2="180" stroke="#E8D7A6" strokeWidth="1.2" opacity="0.7" />
-                <text x="24" y="184" fill="#00B3A4" fontSize="9" fontFamily="serif" fontWeight="bold">ASC</text>
-                <text x="376" y="184" fill="#E8D7A6" fontSize="9" fontFamily="serif">DSC</text>
-
-                {/* Meridian Axis: Medium Coeli / Imum Coeli */}
-                <line x1="200" y1="20" x2="200" y2="340" stroke="#E8D7A6" strokeWidth="1.2" opacity="0.7" />
-                <text x="200" y="14" fill="#00B3A4" fontSize="9" fontFamily="serif" textAnchor="middle" fontWeight="bold">MC</text>
-                <text x="200" y="354" fill="#E8D7A6" fontSize="9" fontFamily="serif" textAnchor="middle">IC</text>
-
-                {/* Aspect Geometric Triangles in Violeta profundo & Turquesa */}
-                <polygon points="120,70 300,120 180,310" stroke="#00B3A4" strokeWidth="0.8" fill="#2A0E34" fillOpacity="0.4" />
-                <polygon points="70,180 200,60 330,180" stroke="#E8D7A6" strokeWidth="0.6" strokeDasharray="2 3" opacity="0.5" />
-
-                {/* Celestial Nodes / Planetary Symbols */}
-                {/* Sun ☉ */}
-                <g transform="translate(120, 70)">
-                  <circle cx="0" cy="0" r="8" fill="#2A0E34" stroke="#E8D7A6" strokeWidth="1" />
-                  <circle cx="0" cy="0" r="2.2" fill="#00B3A4" />
-                  <text x="12" y="4" fill="#E8D7A6" fontSize="10" fontFamily="serif">☉ Sol</text>
-                </g>
-
-                {/* Moon ☽ */}
-                <g transform="translate(300, 120)">
-                  <circle cx="0" cy="0" r="8" fill="#2A0E34" stroke="#00B3A4" strokeWidth="1" />
-                  <path d="M -4,-4 A 5,5 0 0,0 2,4 A 4,4 0 0,1 -4,-4 Z" fill="#E8D7A6" />
-                  <text x="12" y="4" fill="#00B3A4" fontSize="10" fontFamily="serif">☽ Luna</text>
-                </g>
-
-                {/* Chiron ⚷ */}
-                <g transform="translate(180, 310)">
-                  <circle cx="0" cy="0" r="8" fill="#0D1B2A" stroke="#00B3A4" strokeWidth="1" />
-                  <text x="-4" y="4" fill="#00B3A4" fontSize="10" fontFamily="serif">⚷</text>
-                  <text x="12" y="4" fill="#E8D7A6" fontSize="9" fontFamily="serif">Quirón</text>
-                </g>
-
-                {/* Saturn ♄ */}
-                <g transform="translate(260, 240)">
-                  <circle cx="0" cy="0" r="6" fill="#0D1B2A" stroke="#7A7A7A" strokeWidth="0.8" opacity="0.8" />
-                  <text x="-3" y="3" fill="#7A7A7A" fontSize="8" fontFamily="serif">♄</text>
-                </g>
-
-                {/* Center Singularity: The Self (Das Selbst) */}
-                <circle cx="200" cy="180" r="24" fill="#2A0E34" stroke="#00B3A4" strokeWidth="1.2" />
-                <circle cx="200" cy="180" r="4" fill="#E8D7A6" />
-                <text x="200" y="184" fill="#E8D7A6" fontSize="7" fontFamily="monospace" textAnchor="middle">ANIMA</text>
-              </svg>
+            {/* Carta Natal Egipcia Narmer */}
+            <div className="relative py-4 flex flex-col items-center justify-center">
+              <div className="w-full max-w-[380px] sm:max-w-[420px] aspect-[686/1024] rounded-2xl overflow-hidden border border-[#00B3A4]/40 bg-[#07101B] shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_25px_rgba(0,179,164,0.2)]">
+                <SupabaseMedia
+                  bucket="cards"
+                  storagePath="carta-natal-narmer.jpg"
+                  localFallbackSrc="./cards/carta-natal-narmer.jpg?v=2"
+                  localStorageKey="narmer_carta_natal_img"
+                  alt="Carta Natal · Narmer Tarot y Psicoastrología"
+                  mediaClassName="w-full h-full object-contain rounded-2xl select-none"
+                  fallbackContent={
+                    <img
+                      src="./cards/carta-natal-narmer.jpg?v=2"
+                      alt="Carta Natal · Narmer Tarot y Psicoastrología"
+                      className="w-full h-full object-contain rounded-2xl select-none"
+                    />
+                  }
+                />
+              </div>
 
               <div className="mt-4 text-center">
                 <span className="font-handwritten text-base text-[#00B3A4]">

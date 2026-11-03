@@ -3,12 +3,14 @@ import { Volume2, VolumeX, Menu, X, ArrowUpRight, Sliders } from 'lucide-react';
 import { useAmbientAudio } from '../../context/AmbientAudioContext';
 import { MagneticButton } from '../ui/MagneticButton';
 import { NarmerLogo } from '../ui/NarmerLogo';
+import { EgyptianCarouselIconSvg } from '../ui/EgyptianSandCarousel';
 
 interface NavbarEditorialProps {
   onOpenBooking: () => void;
+  onOpenGallery?: () => void;
 }
 
-export const NavbarEditorial: React.FC<NavbarEditorialProps> = ({ onOpenBooking }) => {
+export const NavbarEditorial: React.FC<NavbarEditorialProps> = ({ onOpenBooking, onOpenGallery }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isPlaying, togglePlay, togglePanel } = useAmbientAudio();
@@ -30,68 +32,79 @@ export const NavbarEditorial: React.FC<NavbarEditorialProps> = ({ onOpenBooking 
             : 'bg-transparent py-6'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 flex items-center justify-between">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 xl:gap-6">
           {/* Brand Mark: Editorial & Celestial Emblem */}
-          <a href="#" className="flex items-center gap-3 group">
-            <NarmerLogo size="sm" showSubtitle={false} className="group-hover:scale-105 transition-transform" />
+          <a href="#" className="flex items-center gap-2.5 shrink-0 group">
+            <NarmerLogo size="sm" showSubtitle={false} className="group-hover:scale-105 transition-transform shrink-0" />
             <div className="flex flex-col">
-              <span className="font-editorial text-lg sm:text-xl tracking-[0.22em] text-[#E8D7A6] group-hover:text-[#00B3A4] transition-colors font-medium leading-none">
+              <span className="font-editorial text-base sm:text-lg tracking-[0.18em] text-[#E8D7A6] group-hover:text-[#00B3A4] transition-colors font-medium leading-none">
                 NARMER
               </span>
-              <span className="font-mono text-[8px] sm:text-[9px] tracking-[0.25em] uppercase text-[#00B3A4] opacity-90 mt-1">
+              <span className="font-mono text-[7.5px] sm:text-[8px] tracking-[0.14em] uppercase text-[#00B3A4] opacity-90 mt-1 whitespace-nowrap">
                 Tarot y Psicoastrología
               </span>
             </div>
           </a>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-9 text-[11px] xl:text-xs font-clean font-light tracking-[0.18em] xl:tracking-[0.2em] uppercase text-[#E8D7A6]/75">
-            <a href="#tarot" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap">
+          <nav className="hidden lg:flex items-center justify-center flex-1 min-w-0 gap-3.5 xl:gap-6 text-[10px] xl:text-[11px] font-clean font-normal tracking-[0.1em] xl:tracking-[0.14em] uppercase text-[#E8D7A6]/80">
+            <a href="#tarot" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap py-1">
               Tarot
             </a>
-            <a href="#oraculo" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap">
+            <a href="#oraculo" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap py-1">
               Oráculo
             </a>
-            <a href="#psicoastrologia" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap">
+            <a href="#psicoastrologia" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap py-1">
               Psicoastrología
             </a>
-            <a href="#sesiones" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap">
+            <a href="#sesiones" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap py-1">
               Sesiones
             </a>
-            <a href="#testimonios" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap">
+            <a href="#testimonios" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap py-1">
               Resonancias
             </a>
-            <a href="#espacio" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap">
+            <a href="#espacio" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap py-1">
               El espacio
             </a>
-            <a href="#cuaderno" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap">
+            <a href="#cuaderno" className="hover:text-[#00B3A4] transition-colors whitespace-nowrap py-1">
               Cuaderno
             </a>
           </nav>
 
-          {/* Right Controls: Ambient Audio Toggle + Small "Reservar" */}
-          <div className="flex items-center gap-3 sm:gap-5">
+          {/* Right Controls: Gallery 3D Icon + Ambient Audio Toggle + Small "Reservar" */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {onOpenGallery && (
+              <button
+                onClick={onOpenGallery}
+                className="p-1.5 rounded-full border border-[#00B3A4]/50 bg-[#1A0924]/70 hover:bg-[#2A0E34] hover:border-[#00B3A4] text-[#E8D7A6] transition-all duration-300 shadow-[0_0_12px_rgba(0,179,164,0.2)] shrink-0"
+                title="Desplegar Galería Visual 3D · 8 Láminas"
+                aria-label="Abrir galería visual 3D"
+              >
+                <EgyptianCarouselIconSvg className="w-4 h-4" />
+              </button>
+            )}
+
             {/* Ambient Sound Trigger */}
             <div className="flex items-center gap-1">
               <button
                 onClick={togglePlay}
-                className={`p-2 rounded-full border transition-all text-[11px] font-mono flex items-center gap-1.5 ${
+                className={`px-2.5 py-1.5 rounded-full border transition-all text-[10px] font-mono flex items-center gap-1.5 whitespace-nowrap ${
                   isPlaying
                     ? 'border-[#00B3A4] text-[#E8D7A6] bg-[#2A0E34]/80 shadow-[0_0_12px_rgba(0,179,164,0.3)]'
                     : 'border-[#E8D7A6]/25 text-[#E8D7A6]/60 hover:text-[#00B3A4] hover:border-[#00B3A4]'
                 }`}
-                title={isPlaying ? 'Pausar atmósfera sonoro' : 'Activar atmósfera sonoro (Viento & Campanas)'}
+                title={isPlaying ? 'Pausar atmósfera sonora' : 'Activar atmósfera sonora (Viento & Campanas)'}
                 aria-label="Alternar sonido ambiental"
               >
                 {isPlaying ? (
                   <>
-                    <Volume2 className="w-3.5 h-3.5 text-[#00B3A4]" />
-                    <span className="hidden lg:inline text-[9px] tracking-widest uppercase">Atmósfera ON</span>
+                    <Volume2 className="w-3.5 h-3.5 text-[#00B3A4] shrink-0" />
+                    <span className="hidden xl:inline text-[9px] tracking-[0.12em] uppercase">Atmósfera ON</span>
                   </>
                 ) : (
                   <>
-                    <VolumeX className="w-3.5 h-3.5" />
-                    <span className="hidden lg:inline text-[9px] tracking-widest uppercase">Atmósfera</span>
+                    <VolumeX className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden xl:inline text-[9px] tracking-[0.12em] uppercase">Atmósfera</span>
                   </>
                 )}
               </button>
@@ -99,7 +112,7 @@ export const NavbarEditorial: React.FC<NavbarEditorialProps> = ({ onOpenBooking 
               {/* Discreet Settings Trigger */}
               <button
                 onClick={togglePanel}
-                className="hidden sm:inline-flex p-1.5 text-[#E8D7A6]/50 hover:text-[#00B3A4] transition-colors"
+                className="hidden sm:inline-flex p-1.5 text-[#E8D7A6]/50 hover:text-[#00B3A4] transition-colors shrink-0"
                 title="Ajustes de sonido (Viento / Campanas / Volumen)"
                 aria-label="Abrir panel de sonido"
               >
@@ -111,7 +124,7 @@ export const NavbarEditorial: React.FC<NavbarEditorialProps> = ({ onOpenBooking 
             <MagneticButton
               onClick={onOpenBooking}
               strength={0.25}
-              className="px-4 py-2 border border-[#00B3A4]/60 bg-[#2A0E34]/30 hover:bg-[#2A0E34] hover:border-[#00B3A4] text-[#E8D7A6] font-clean text-[11px] tracking-[0.22em] uppercase transition-all duration-300"
+              className="px-3.5 py-2 border border-[#00B3A4]/60 bg-[#2A0E34]/30 hover:bg-[#2A0E34] hover:border-[#00B3A4] text-[#E8D7A6] font-clean text-[10px] xl:text-[11px] tracking-[0.16em] uppercase transition-all duration-300 whitespace-nowrap shrink-0"
             >
               Reservar
             </MagneticButton>
@@ -119,7 +132,7 @@ export const NavbarEditorial: React.FC<NavbarEditorialProps> = ({ onOpenBooking 
             {/* Mobile Menu Trigger */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-[#E8D7A6] hover:text-[#00B3A4] transition-colors"
+              className="lg:hidden p-2 text-[#E8D7A6] hover:text-[#00B3A4] transition-colors shrink-0"
               aria-label="Abrir menú"
             >
               <Menu className="w-5 h-5" />

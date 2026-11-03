@@ -98,9 +98,9 @@ export const CuadernoSimbolos: React.FC = () => {
       <div className="absolute inset-0 paper-grain opacity-35 pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6 text-left">
-          <div className="max-w-xl">
+        {/* Section Header with Ensayos & Apuntes Emblem */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center mb-16 text-left">
+          <div className="lg:col-span-7">
             <div className="flex items-center gap-3 mb-3">
               <span className="w-6 h-[1.5px] bg-[#00B3A4]" />
               <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#00B3A4]">
@@ -116,13 +116,32 @@ export const CuadernoSimbolos: React.FC = () => {
             >
               Cuaderno de símbolos.
             </EditorialBlurredHeading>
-            <p className="mt-4 font-editorial text-base sm:text-lg text-[#E8D7A6]/80 font-light leading-relaxed">
+            <p className="mt-4 font-editorial text-base sm:text-lg text-[#E8D7A6]/80 font-light leading-relaxed max-w-2xl">
               Páginas de reflexión sobre mitología, arquetipos lunares y la psicología de la mirada interior.
             </p>
+            <div className="mt-5 font-mono text-xs text-[#00B3A4] tracking-widest uppercase">
+              REVISTA EDITORIAL · NARMER
+            </div>
           </div>
 
-          <div className="font-mono text-xs text-[#00B3A4] tracking-widest uppercase">
-            REVISTA EDITORIAL · NARMER
+          <div className="lg:col-span-5 flex justify-center lg:justify-end">
+            <div className="w-full max-w-[300px] sm:max-w-[350px] aspect-square rounded-2xl overflow-hidden border border-[#00B3A4]/40 bg-[#08121D] shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_25px_rgba(0,179,164,0.2)]">
+              <SupabaseMedia
+                bucket="essays"
+                storagePath="ensayos-apuntes.jpg"
+                localFallbackSrc="./cards/ensayos-apuntes.jpg?v=2"
+                localStorageKey="narmer_ensayos_header_img_v2"
+                alt="Ensayos & Apuntes · Narmer Tarot y Psicoastrología"
+                mediaClassName="w-full h-full object-contain rounded-2xl select-none"
+                fallbackContent={
+                  <img
+                    src="./cards/ensayos-apuntes.jpg?v=2"
+                    alt="Ensayos & Apuntes · Narmer Tarot y Psicoastrología"
+                    className="w-full h-full object-contain rounded-2xl select-none"
+                  />
+                }
+              />
+            </div>
           </div>
         </div>
 

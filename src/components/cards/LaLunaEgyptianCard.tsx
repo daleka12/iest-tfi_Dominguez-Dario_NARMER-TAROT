@@ -1,6 +1,19 @@
 import React from 'react';
 
 export const LaLunaEgyptianCard: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const [imgError, setImgError] = React.useState(false);
+
+  if (!imgError) {
+    return (
+      <img
+        src="./cards/18.jpg"
+        alt="Arcano XVIII · La Luna (El Crepúsculo)"
+        onError={() => setImgError(true)}
+        className={`w-full h-full object-contain rounded-xl select-none ${className}`}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 450 780"

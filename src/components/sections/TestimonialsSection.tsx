@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, Sparkles, Pause, Play } from 'lucide-react';
 import { EditorialBlurredHeading } from '../ui/EditorialBlurredHeading';
+import { SupabaseMedia } from '../ui/SupabaseMedia';
 import { fetchSupabaseTable } from '../../services/supabase';
+
+export type TestimonialGender = 'female' | 'male' | 'couple';
 
 interface TestimonialItem {
   id: string;
@@ -13,7 +16,318 @@ interface TestimonialItem {
   sessionType: string;
   archetype: string;
   year: string;
+  gender?: TestimonialGender;
+  avatarUrl?: string;
 }
+
+/**
+ * Ilustración vectorial de perfil femenino al estilo del Tarot Egipcio Narmer
+ * (inspirada en La Sacerdotisa: tocado de loto/luna, peluca trenzada egipcia, ojo de Horus, aro solar y collar Wesekh)
+ */
+const EgyptianFemaleProfileSvg: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg
+    viewBox="0 0 120 120"
+    className={`w-full h-full ${className}`}
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <clipPath id="egyptianFemaleClip">
+        <circle cx="60" cy="60" r="54" />
+      </clipPath>
+    </defs>
+
+    {/* Marco circular estilo medallón egipcio */}
+    <circle cx="60" cy="60" r="58" fill="#00B3A4" />
+    <circle cx="60" cy="60" r="54.5" fill="#180821" stroke="#E8D7A6" strokeWidth="1.8" />
+
+    <g clipPath="url(#egyptianFemaleClip)">
+      {/* Cielo nocturno del santuario */}
+      <circle cx="60" cy="60" r="54" fill="#180821" />
+      <rect x="0" y="84" width="120" height="40" fill="#0D1B2A" />
+
+      {/* Estrellas sutiles */}
+      <circle cx="24" cy="34" r="1.1" fill="#E8D7A6" opacity="0.85" />
+      <circle cx="96" cy="28" r="1.2" fill="#FFFFFF" opacity="0.8" />
+      <path d="M 96,24 L 96,32 M 92,28 L 100,28" stroke="#FFFFFF" strokeWidth="0.6" opacity="0.7" />
+      <circle cx="98" cy="52" r="1" fill="#E8D7A6" opacity="0.7" />
+
+      {/* Disco lunar y cuernos de Hathor en la corona */}
+      <path
+        d="M 43,22 C 43,12 50,10 56,10 C 62,10 69,12 69,22"
+        stroke="#00B3A4"
+        strokeWidth="2.2"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <circle cx="56" cy="16" r="6.5" fill="#E8D7A6" stroke="#0E1724" strokeWidth="1.2" />
+
+      {/* Peluca egipcia trenzada (parte posterior) */}
+      <path
+        d="M 34,32 C 34,23 44,20 58,20 C 70,20 75,25 76,33 L 72,36 L 60,82 L 30,82 C 29,64 31,45 34,32 Z"
+        fill="#2A0E34"
+        stroke="#E8D7A6"
+        strokeWidth="1.3"
+      />
+      {/* Líneas de trenzas doradas/turquesa en la peluca */}
+      <line x1="36" y1="42" x2="52" y2="42" stroke="#00B3A4" strokeWidth="1.4" />
+      <line x1="35" y1="50" x2="51" y2="50" stroke="#E8D7A6" strokeWidth="1.1" />
+      <line x1="34" y1="58" x2="50" y2="58" stroke="#00B3A4" strokeWidth="1.4" />
+      <line x1="33" y1="66" x2="49" y2="66" stroke="#E8D7A6" strokeWidth="1.1" />
+
+      {/* Cuello esbelto y rostro femenino de perfil mirando a la derecha */}
+      <path
+        d="M 48,70 L 50,88 L 66,88 L 64,71 C 71,71 75,69 77,65 C 78,62 77,60 79,58 C 77,57 77,55 79,54 C 81,53 83,52 83,50 C 83,48 79,42 76,36 L 54,36 Z"
+        fill="#F2DFB8"
+        stroke="#0E1724"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+
+      {/* Labios femeninos delicados */}
+      <path d="M 79,58 L 74,58.5" stroke="#2A0E34" strokeWidth="1.3" strokeLinecap="round" />
+
+      {/* Ojo de Horus (Kohl egipcio y ceja arqueada) */}
+      <path d="M 65,43 Q 71,41 75,43" stroke="#0E1724" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      <ellipse cx="70.5" cy="46.5" rx="3.2" ry="1.6" fill="#FFFFFF" stroke="#0E1724" strokeWidth="1.2" />
+      <circle cx="71.2" cy="46.5" r="1.2" fill="#0E1724" />
+      <path d="M 67,46.5 L 61,48.5" stroke="#0E1724" strokeWidth="1.3" strokeLinecap="round" />
+
+      {/* Mechón lateral de la peluca y aro dorado */}
+      <path
+        d="M 48,34 L 62,34 L 59,76 L 45,76 Z"
+        fill="#250B30"
+        stroke="#E8D7A6"
+        strokeWidth="1.2"
+      />
+      <rect x="46" y="64" width="13" height="4" fill="#00B3A4" />
+      <rect x="46" y="70" width="13" height="3" fill="#E8D7A6" />
+
+      {/* Aro solar egipcio */}
+      <circle cx="60" cy="56" r="4.5" fill="#E8D7A6" stroke="#0E1724" strokeWidth="1.2" />
+      <circle cx="60" cy="56" r="1.8" fill="#00B3A4" />
+
+      {/* Diadema real turquesa y Uraeus dorado en la frente */}
+      <path d="M 35,31 L 76,31 L 77,35 L 34,35 Z" fill="#00B3A4" stroke="#0E1724" strokeWidth="1.2" />
+      <path
+        d="M 76,31 C 80,27 82,29 80,33 C 79,35 77,35 76,34 Z"
+        fill="#E8D7A6"
+        stroke="#0E1724"
+        strokeWidth="1"
+      />
+
+      {/* Hombros y Collar ceremonial Wesekh */}
+      <path
+        d="M 22,120 C 24,94 37,84 58,84 C 79,84 91,94 94,120 Z"
+        fill="#00B3A4"
+        stroke="#0E1724"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M 34,86 C 42,99 74,99 82,86 C 77,104 39,104 34,86 Z"
+        fill="#E8D7A6"
+        stroke="#0E1724"
+        strokeWidth="1.2"
+      />
+      <path
+        d="M 30,90 C 40,108 76,108 86,90 C 81,112 35,112 30,90 Z"
+        fill="#2A0E34"
+        stroke="#E8D7A6"
+        strokeWidth="1.2"
+      />
+    </g>
+  </svg>
+);
+
+/**
+ * Ilustración vectorial de perfil masculino al estilo del Tarot Egipcio Narmer
+ * (inspirada en El Eremita / Sabio Egipcio: tocado Nemes a franjas turquesa y violeta, barba ceremonial trenzada, ojo de Horus y collar Wesekh)
+ */
+const EgyptianMaleProfileSvg: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg
+    viewBox="0 0 120 120"
+    className={`w-full h-full ${className}`}
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <clipPath id="egyptianMaleClip">
+        <circle cx="60" cy="60" r="54" />
+      </clipPath>
+    </defs>
+
+    {/* Marco circular estilo medallón egipcio */}
+    <circle cx="60" cy="60" r="58" fill="#00B3A4" />
+    <circle cx="60" cy="60" r="54.5" fill="#07101B" stroke="#E8D7A6" strokeWidth="1.8" />
+
+    <g clipPath="url(#egyptianMaleClip)">
+      {/* Cielo nocturno estrellado */}
+      <circle cx="60" cy="60" r="54" fill="#07101B" />
+      <rect x="0" y="84" width="120" height="40" fill="#180821" />
+
+      {/* Sol alquímico / astro superior */}
+      <circle cx="26" cy="28" r="6" fill="#E8D7A6" opacity="0.9" />
+      <circle cx="96" cy="34" r="1.2" fill="#FFFFFF" opacity="0.85" />
+      <circle cx="92" cy="50" r="1" fill="#E8D7A6" opacity="0.75" />
+
+      {/* Tocado Nemes egipcio (caída posterior con franjas turquesa y violeta) */}
+      <path
+        d="M 30,30 C 31,19 44,16 60,16 C 72,16 77,22 78,31 L 58,82 L 24,82 C 24,62 27,44 30,30 Z"
+        fill="#00B3A4"
+        stroke="#0E1724"
+        strokeWidth="1.5"
+      />
+      {/* Franjas del tocado Nemes */}
+      <path d="M 32,24 L 75,24 L 76,29 L 30,29 Z" fill="#2A0E34" />
+      <path d="M 29,36 L 56,36 L 54,42 L 28,42 Z" fill="#2A0E34" />
+      <path d="M 27,48 L 53,48 L 51,54 L 26,54 Z" fill="#2A0E34" />
+      <path d="M 25,60 L 50,60 L 48,66 L 25,66 Z" fill="#2A0E34" />
+      <path d="M 24,72 L 48,72 L 46,78 L 24,78 Z" fill="#2A0E34" />
+
+      {/* Rostro masculino de perfil mirando a la derecha */}
+      <path
+        d="M 48,68 L 49,88 L 68,88 L 66,70 C 73,70 77,68 78,63 C 79,60 78,58 80,56 C 78,55 78,53 80,52 C 83,51 85,50 85,48 C 85,45 80,39 77,33 L 52,33 Z"
+        fill="#E5CFA3"
+        stroke="#0E1724"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+
+      {/* Rasgos masculinos: boca firme y ojo de Horus */}
+      <path d="M 80,56.5 L 73.5,56.5" stroke="#0E1724" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M 65,40.5 L 76,40.5" stroke="#0E1724" strokeWidth="1.8" strokeLinecap="round" />
+      <ellipse cx="71.5" cy="44.5" rx="3.4" ry="1.6" fill="#FFFFFF" stroke="#0E1724" strokeWidth="1.2" />
+      <circle cx="72.2" cy="44.5" r="1.2" fill="#0E1724" />
+      <path d="M 68,44.5 L 61,46" stroke="#0E1724" strokeWidth="1.4" strokeLinecap="round" />
+
+      {/* Barba ceremonial egipcia trenzada */}
+      <path
+        d="M 74,66 L 78,64 L 82,81 C 82,84 79,85 77,83 L 73,68 Z"
+        fill="#250B30"
+        stroke="#E8D7A6"
+        strokeWidth="1.1"
+      />
+      <line x1="75" y1="71" x2="79" y2="70" stroke="#E8D7A6" strokeWidth="1" />
+      <line x1="76" y1="76" x2="80" y2="75" stroke="#E8D7A6" strokeWidth="1" />
+
+      {/* Banda frontal dorada y caída lateral del Nemes */}
+      <path d="M 30,29 L 78,29 L 78,34 L 30,34 Z" fill="#E8D7A6" stroke="#0E1724" strokeWidth="1.2" />
+      <path
+        d="M 46,33 L 58,33 L 56,78 L 44,78 Z"
+        fill="#250B30"
+        stroke="#E8D7A6"
+        strokeWidth="1.2"
+      />
+      <rect x="45" y="42" width="12" height="5" fill="#00B3A4" />
+      <rect x="45" y="54" width="11.5" height="5" fill="#00B3A4" />
+      <rect x="44.5" y="66" width="11.5" height="5" fill="#00B3A4" />
+
+      {/* Hombros anchos, túnica y Collar Wesekh */}
+      <path
+        d="M 18,120 C 20,92 35,83 59,83 C 83,83 96,92 98,120 Z"
+        fill="#2A0E34"
+        stroke="#E8D7A6"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M 31,85 C 40,100 76,100 85,85 C 80,105 36,105 31,85 Z"
+        fill="#00B3A4"
+        stroke="#0E1724"
+        strokeWidth="1.2"
+      />
+      <path
+        d="M 36,85 C 44,95 72,95 80,85 C 76,98 40,98 36,85 Z"
+        fill="#E8D7A6"
+        stroke="#0E1724"
+        strokeWidth="1.1"
+      />
+    </g>
+  </svg>
+);
+
+const inferTestimonialGender = (item: TestimonialItem): TestimonialGender => {
+  if (item.gender) return item.gender;
+  const author = item.author.toLowerCase();
+  if (author.includes('&') || author.includes(' y ')) return 'couple';
+  if (
+    author.includes('dra.') ||
+    author.includes('mariana') ||
+    author.includes('lucía') ||
+    author.includes('lucia') ||
+    author.includes('camila') ||
+    author.includes('maría') ||
+    author.includes('maria') ||
+    author.includes('sofía') ||
+    author.includes('valentina') ||
+    author.includes('laura') ||
+    author.includes('paula') ||
+    author.includes('carla') ||
+    author.includes('florencia')
+  ) {
+    return 'female';
+  }
+  return 'male';
+};
+
+const EgyptianTestimonialAvatar: React.FC<{
+  item: TestimonialItem;
+  size?: 'sm' | 'lg';
+}> = ({ item, size = 'lg' }) => {
+  const gender = inferTestimonialGender(item);
+  const dimClass = size === 'lg' ? 'w-16 h-16 sm:w-20 sm:h-20' : 'w-9 h-9';
+  const coupleDimClass = size === 'lg' ? 'w-14 h-14 sm:w-16 sm:h-16' : 'w-8 h-8';
+
+  if (item.avatarUrl) {
+    return (
+      <div className={`${dimClass} rounded-full overflow-hidden border-2 border-[#00B3A4] shadow-[0_0_20px_rgba(0,179,164,0.28)] shrink-0 bg-[#0D1B2A]`}>
+        <SupabaseMedia
+          bucket="testimonials"
+          storagePath={item.avatarUrl}
+          alt={`Retrato de ${item.author}`}
+          mediaClassName="w-full h-full object-cover"
+          fallbackContent={
+            gender === 'female' ? <EgyptianFemaleProfileSvg /> : <EgyptianMaleProfileSvg />
+          }
+        />
+      </div>
+    );
+  }
+
+  if (gender === 'couple') {
+    return (
+      <div
+        className="flex items-center -space-x-3 shrink-0"
+        aria-label={`Perfiles egipcios femenino y masculino de ${item.author}`}
+      >
+        <div
+          className={`${coupleDimClass} rounded-full shadow-[0_0_20px_rgba(0,179,164,0.25)] relative z-10 transition-transform duration-300 group-hover:-translate-x-0.5`}
+          title="Perfil Femenino · Tarot Egipcio"
+        >
+          <EgyptianFemaleProfileSvg />
+        </div>
+        <div
+          className={`${coupleDimClass} rounded-full shadow-[0_0_20px_rgba(0,179,164,0.25)] relative z-0 transition-transform duration-300 group-hover:translate-x-0.5`}
+          title="Perfil Masculino · Tarot Egipcio"
+        >
+          <EgyptianMaleProfileSvg />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${dimClass} rounded-full shadow-[0_0_22px_rgba(0,179,164,0.28)] shrink-0`}
+      title={
+        gender === 'female'
+          ? `Perfil Egipcio Femenino · ${item.author}`
+          : `Perfil Egipcio Masculino · ${item.author}`
+      }
+    >
+      {gender === 'female' ? <EgyptianFemaleProfileSvg /> : <EgyptianMaleProfileSvg />}
+    </div>
+  );
+};
 
 const TESTIMONIALS: TestimonialItem[] = [
   {
@@ -26,6 +340,7 @@ const TESTIMONIALS: TestimonialItem[] = [
     sessionType: 'Carta Natal Psicoastrológica',
     archetype: 'El Espejo de la Sombra',
     year: '2025',
+    gender: 'female',
   },
   {
     id: 't2',
@@ -37,6 +352,7 @@ const TESTIMONIALS: TestimonialItem[] = [
     sessionType: 'Revolución Solar & Ciclos',
     archetype: 'El Colapso de la Torre',
     year: '2025',
+    gender: 'male',
   },
   {
     id: 't3',
@@ -48,6 +364,7 @@ const TESTIMONIALS: TestimonialItem[] = [
     sessionType: 'Sinastría & Dinámica Vincular',
     archetype: 'La Tercera Entidad',
     year: '2026',
+    gender: 'couple',
   },
   {
     id: 't4',
@@ -59,6 +376,7 @@ const TESTIMONIALS: TestimonialItem[] = [
     sessionType: 'Tarot Egipcio Evolutivo',
     archetype: 'El Umbral de la Sacerdotisa',
     year: '2026',
+    gender: 'female',
   },
   {
     id: 't5',
@@ -70,6 +388,7 @@ const TESTIMONIALS: TestimonialItem[] = [
     sessionType: 'Tarot + Carta Natal',
     archetype: 'El Sendero del Eremita',
     year: '2025',
+    gender: 'male',
   },
 ];
 
@@ -77,7 +396,7 @@ export const TestimonialsSection: React.FC = () => {
   const [items, setItems] = useState<TestimonialItem[]>(TESTIMONIALS);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const SLIDE_DURATION = 8000; // 8 seconds slow contemplative cycle
 
@@ -243,21 +562,26 @@ export const TestimonialsSection: React.FC = () => {
                 «{active.quote}»
               </blockquote>
 
-              {/* Author Attribution Meta */}
+              {/* Author Attribution Meta with Egyptian Profile Portrait */}
               <div className="mt-10 pt-6 border-t border-[#E8D7A6]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <cite className="not-italic font-editorial text-lg sm:text-xl text-[#E8D7A6] font-medium block">
-                    {active.author}
-                  </cite>
-                  <p className="font-clean text-xs text-[#E8D7A6]/70 tracking-wide font-light">
-                    {active.role} · <span className="text-[#00B3A4]">{active.location}</span>
-                  </p>
+                <div className="flex items-center gap-4 group">
+                  <EgyptianTestimonialAvatar item={active} size="lg" />
+                  <div className="space-y-1">
+                    <cite className="not-italic font-editorial text-lg sm:text-xl text-[#E8D7A6] font-medium block">
+                      {active.author}
+                    </cite>
+                    <p className="font-clean text-xs text-[#E8D7A6]/70 tracking-wide font-light">
+                      {active.role} · <span className="text-[#00B3A4]">{active.location}</span>
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#00B3A4]/80 shadow-[0_0_8px_rgba(0,179,164,0.6)]" />
                   <span className="font-mono text-[9px] tracking-[0.25em] uppercase text-[#E8D7A6]/60">
-                    Consulta individual en vivo
+                    {inferTestimonialGender(active) === 'couple'
+                      ? 'Consulta vincular en vivo'
+                      : 'Consulta individual en vivo'}
                   </span>
                 </div>
               </div>
@@ -265,20 +589,31 @@ export const TestimonialsSection: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* Minimalist Progress Indicators */}
-        <div className="mt-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-[#7A7A7A]/20">
-          <div className="flex items-center gap-2.5">
+        {/* Minimalist Progress Indicators with Egyptian Mini-Avatars */}
+        <div className="mt-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-6 border-t border-[#7A7A7A]/20">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             {items.map((t, idx) => {
               const isActive = idx === currentIndex;
               return (
                 <button
                   key={t.id}
                   onClick={() => goToSlide(idx)}
-                  className="group py-2 focus:outline-none"
+                  className={`group flex flex-col items-center gap-2 py-1 focus:outline-none transition-all duration-300 ${
+                    isActive ? 'opacity-100 scale-105' : 'opacity-55 hover:opacity-90'
+                  }`}
                   aria-label={`Ir al testimonio de ${t.author}`}
                   title={t.author}
                 >
-                  <div className="relative h-[2px] transition-all duration-700 overflow-hidden bg-[#E8D7A6]/20 rounded-full w-8 sm:w-12">
+                  <div
+                    className={`rounded-full p-0.5 transition-all duration-300 ${
+                      isActive
+                        ? 'ring-2 ring-[#00B3A4] shadow-[0_0_14px_rgba(0,179,164,0.45)]'
+                        : 'ring-1 ring-[#E8D7A6]/25 group-hover:ring-[#00B3A4]/60'
+                    }`}
+                  >
+                    <EgyptianTestimonialAvatar item={t} size="sm" />
+                  </div>
+                  <div className="relative h-[2px] transition-all duration-700 overflow-hidden bg-[#E8D7A6]/20 rounded-full w-10 sm:w-12">
                     {isActive ? (
                       <motion.div
                         className="absolute inset-0 bg-[#00B3A4]"
