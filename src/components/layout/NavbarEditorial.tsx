@@ -4,13 +4,15 @@ import { useAmbientAudio } from '../../context/AmbientAudioContext';
 import { MagneticButton } from '../ui/MagneticButton';
 import { NarmerLogo } from '../ui/NarmerLogo';
 import { EgyptianCarouselIconSvg } from '../ui/EgyptianSandCarousel';
+import { EgyptianSpotIconSvg } from '../ui/EgyptianVideoSpotModal';
 
 interface NavbarEditorialProps {
   onOpenBooking: () => void;
   onOpenGallery?: () => void;
+  onOpenSpot?: () => void;
 }
 
-export const NavbarEditorial: React.FC<NavbarEditorialProps> = ({ onOpenBooking, onOpenGallery }) => {
+export const NavbarEditorial: React.FC<NavbarEditorialProps> = ({ onOpenBooking, onOpenGallery, onOpenSpot }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isPlaying, togglePlay, togglePanel } = useAmbientAudio();
@@ -71,8 +73,19 @@ export const NavbarEditorial: React.FC<NavbarEditorialProps> = ({ onOpenBooking,
             </a>
           </nav>
 
-          {/* Right Controls: Gallery 3D Icon + Ambient Audio Toggle + Small "Reservar" */}
+          {/* Right Controls: Spot Icon + Gallery 3D Icon + Ambient Audio Toggle + Small "Reservar" */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {onOpenSpot && (
+              <button
+                onClick={onOpenSpot}
+                className="p-1.5 rounded-full border border-[#E8D7A6]/45 bg-[#1A0924]/70 hover:bg-[#2A0E34] hover:border-[#00B3A4] text-[#E8D7A6] transition-all duration-300 shadow-[0_0_12px_rgba(232,215,166,0.18)] shrink-0"
+                title="Ver Spot Audiovisual · NARMER"
+                aria-label="Abrir Spot Audiovisual"
+              >
+                <EgyptianSpotIconSvg className="w-4 h-4" />
+              </button>
+            )}
+
             {onOpenGallery && (
               <button
                 onClick={onOpenGallery}

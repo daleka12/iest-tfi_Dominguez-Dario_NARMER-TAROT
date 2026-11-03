@@ -103,10 +103,12 @@ const EditorialSectionReveal_1 = require("./components/ui/EditorialSectionReveal
 const EditorialScrollTimeline_1 = require("./components/ui/EditorialScrollTimeline");
 const AnalogFilmGrainOverlay_1 = require("./components/ui/AnalogFilmGrainOverlay");
 const EgyptianSandCarousel_1 = require("./components/ui/EgyptianSandCarousel");
+const EgyptianVideoSpotModal_1 = require("./components/ui/EgyptianVideoSpotModal");
 function App() {
     const [bookingModalOpen, setBookingModalOpen] = (0, react_1.useState)(false);
     const [selectedSession, setSelectedSession] = (0, react_1.useState)('01 · TAROT (60 min)');
     const [galleryCarouselOpen, setGalleryCarouselOpen] = (0, react_1.useState)(false);
+    const [spotModalOpen, setSpotModalOpen] = (0, react_1.useState)(false);
     const handleOpenBooking = (sessionTitle) => {
         if (sessionTitle) {
             setSelectedSession(sessionTitle);
@@ -124,7 +126,7 @@ function App() {
             react_1.default.createElement(AnalogFilmGrainOverlay_1.AnalogFilmGrainOverlay, null),
             react_1.default.createElement(EditorialScrollTimeline_1.EditorialScrollTimeline, null),
             react_1.default.createElement(OrbitalCursor_1.OrbitalCursor, null),
-            react_1.default.createElement(NavbarEditorial_1.NavbarEditorial, { onOpenBooking: () => handleOpenBooking(), onOpenGallery: () => setGalleryCarouselOpen(true) }),
+            react_1.default.createElement(NavbarEditorial_1.NavbarEditorial, { onOpenBooking: () => handleOpenBooking(), onOpenGallery: () => setGalleryCarouselOpen(true), onOpenSpot: () => setSpotModalOpen(true) }),
             react_1.default.createElement("main", { className: "relative" },
                 react_1.default.createElement(HeroArtistic_1.HeroArtistic, { onEnterOracle: () => scrollToSection('oraculo'), onExploreChart: () => scrollToSection('psicoastrologia'), onBookSession: () => handleOpenBooking() }),
                 react_1.default.createElement(EditorialSectionReveal_1.EditorialSectionReveal, { conduitLabel: "CAP. I \u00B7 ARCANOS" },
@@ -145,6 +147,7 @@ function App() {
                     react_1.default.createElement(CuadernoSimbolos_1.CuadernoSimbolos, null))),
             react_1.default.createElement(AtmosphericAudioPlayer_1.AtmosphericAudioPlayer, null),
             react_1.default.createElement(EgyptianSandCarousel_1.EgyptianSandCarousel, { isOpen: galleryCarouselOpen, onOpen: () => setGalleryCarouselOpen(true), onClose: () => setGalleryCarouselOpen(false) }),
+            react_1.default.createElement(EgyptianVideoSpotModal_1.EgyptianVideoSpotModal, { isOpen: spotModalOpen, onOpen: () => setSpotModalOpen(true), onClose: () => setSpotModalOpen(false) }),
             react_1.default.createElement(EditorialSectionReveal_1.EditorialSectionReveal, { showConduit: false },
                 react_1.default.createElement(FooterEditorial_1.FooterEditorial, { onOpenBooking: () => handleOpenBooking() })),
             react_1.default.createElement(BookingEditorialModal_1.BookingEditorialModal, { isOpen: bookingModalOpen, onClose: () => setBookingModalOpen(false), initialSession: selectedSession }))));
@@ -1370,7 +1373,8 @@ const AmbientAudioContext_1 = require("../../context/AmbientAudioContext");
 const MagneticButton_1 = require("../ui/MagneticButton");
 const NarmerLogo_1 = require("../ui/NarmerLogo");
 const EgyptianSandCarousel_1 = require("../ui/EgyptianSandCarousel");
-const NavbarEditorial = ({ onOpenBooking, onOpenGallery }) => {
+const EgyptianVideoSpotModal_1 = require("../ui/EgyptianVideoSpotModal");
+const NavbarEditorial = ({ onOpenBooking, onOpenGallery, onOpenSpot }) => {
     const [isScrolled, setIsScrolled] = (0, react_1.useState)(false);
     const [mobileMenuOpen, setMobileMenuOpen] = (0, react_1.useState)(false);
     const { isPlaying, togglePlay, togglePanel } = (0, AmbientAudioContext_1.useAmbientAudio)();
@@ -1400,6 +1404,8 @@ const NavbarEditorial = ({ onOpenBooking, onOpenGallery }) => {
                     react_1.default.createElement("a", { href: "#espacio", className: "hover:text-[#00B3A4] transition-colors whitespace-nowrap py-1" }, "El espacio"),
                     react_1.default.createElement("a", { href: "#cuaderno", className: "hover:text-[#00B3A4] transition-colors whitespace-nowrap py-1" }, "Cuaderno")),
                 react_1.default.createElement("div", { className: "flex items-center gap-2 sm:gap-2.5 shrink-0" },
+                    onOpenSpot && (react_1.default.createElement("button", { onClick: onOpenSpot, className: "p-1.5 rounded-full border border-[#E8D7A6]/45 bg-[#1A0924]/70 hover:bg-[#2A0E34] hover:border-[#00B3A4] text-[#E8D7A6] transition-all duration-300 shadow-[0_0_12px_rgba(232,215,166,0.18)] shrink-0", title: "Ver Spot Audiovisual \u00B7 NARMER", "aria-label": "Abrir Spot Audiovisual" },
+                        react_1.default.createElement(EgyptianVideoSpotModal_1.EgyptianSpotIconSvg, { className: "w-4 h-4" }))),
                     onOpenGallery && (react_1.default.createElement("button", { onClick: onOpenGallery, className: "p-1.5 rounded-full border border-[#00B3A4]/50 bg-[#1A0924]/70 hover:bg-[#2A0E34] hover:border-[#00B3A4] text-[#E8D7A6] transition-all duration-300 shadow-[0_0_12px_rgba(0,179,164,0.2)] shrink-0", title: "Desplegar Galer\u00EDa Visual 3D \u00B7 8 L\u00E1minas", "aria-label": "Abrir galer\u00EDa visual 3D" },
                         react_1.default.createElement(EgyptianSandCarousel_1.EgyptianCarouselIconSvg, { className: "w-4 h-4" }))),
                     react_1.default.createElement("div", { className: "flex items-center gap-1" },
@@ -4378,6 +4384,118 @@ const EgyptianSandCarousel = ({ isOpen, onClose, onOpen, }) => {
                 }))))))));
 };
 exports.EgyptianSandCarousel = EgyptianSandCarousel;
+
+};
+// --- src/components/ui/EgyptianVideoSpotModal.tsx ---
+modules["src/components/ui/EgyptianVideoSpotModal.tsx"] = function(require, module, exports) {
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.EgyptianVideoSpotModal = exports.EgyptianSpotIconSvg = void 0;
+const react_1 = __importStar(require("react"));
+const react_2 = require("motion/react");
+const lucide_react_1 = require("lucide-react");
+/**
+ * Ícono Egipcio (Disco Solar Alado & Prisma de Proyección) para activar el Spot de Vídeo
+ */
+const EgyptianSpotIconSvg = ({ className = 'w-5 h-5' }) => (react_1.default.createElement("svg", { viewBox: "0 0 36 36", className: className, fill: "none", xmlns: "http://www.w3.org/2000/svg" },
+    react_1.default.createElement("circle", { cx: "18", cy: "18", r: "15.5", stroke: "#00B3A4", strokeWidth: "1.2", strokeDasharray: "3 2", fill: "#180821", fillOpacity: "0.7" }),
+    react_1.default.createElement("path", { d: "M 4.5,18 Q 9,12 13,15.5 L 13,20.5 Q 9,24 4.5,18 Z", stroke: "#00B3A4", strokeWidth: "1.1", fill: "#2A0E34" }),
+    react_1.default.createElement("path", { d: "M 31.5,18 Q 27,12 23,15.5 L 23,20.5 Q 27,24 31.5,18 Z", stroke: "#00B3A4", strokeWidth: "1.1", fill: "#2A0E34" }),
+    react_1.default.createElement("circle", { cx: "18", cy: "18", r: "7.2", stroke: "#E8D7A6", strokeWidth: "1.3", fill: "#0D1B2A" }),
+    react_1.default.createElement("polygon", { points: "16.2,14.3 22.2,18 16.2,21.7", fill: "#E8D7A6", stroke: "#00B3A4", strokeWidth: "0.6", strokeLinejoin: "round" }),
+    react_1.default.createElement("circle", { cx: "18", cy: "6.5", r: "1.1", fill: "#E8D7A6" }),
+    react_1.default.createElement("circle", { cx: "18", cy: "29.5", r: "1.1", fill: "#00B3A4" })));
+exports.EgyptianSpotIconSvg = EgyptianSpotIconSvg;
+const YOUTUBE_VIDEO_ID = 'NCWwVNCTeDo';
+const YOUTUBE_WATCH_URL = 'https://youtu.be/NCWwVNCTeDo';
+const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&rel=0&modestbranding=1`;
+const EgyptianVideoSpotModal = ({ isOpen, onOpen, onClose, }) => {
+    // Cerrar con tecla Escape
+    (0, react_1.useEffect)(() => {
+        if (!isOpen)
+            return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape')
+                onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+    return (react_1.default.createElement(react_1.default.Fragment, null,
+        react_1.default.createElement("div", { className: "fixed bottom-20 left-6 z-40" },
+            react_1.default.createElement("button", { onClick: () => (isOpen ? onClose() : onOpen()), "aria-label": "Reproducir Spot Audiovisual de Narmer", title: "Ver Spot Audiovisual \u00B7 NARMER", className: "group relative flex items-center gap-0 hover:gap-2.5 p-2.5 sm:px-3 sm:py-2.5 rounded-full border border-[#E8D7A6]/45 hover:border-[#00B3A4] bg-[#0D1B2A]/90 hover:bg-[#1E0B28]/95 backdrop-blur-md text-[#E8D7A6] shadow-[0_10px_28px_rgba(0,0,0,0.75),0_0_16px_rgba(232,215,166,0.18)] hover:shadow-[0_10px_32px_rgba(0,0,0,0.85),0_0_24px_rgba(0,179,164,0.4)] transition-all duration-400" },
+                react_1.default.createElement("span", { className: "absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#E8D7A6]/15 via-[#00B3A4]/20 to-[#2A0E34]/25 opacity-60 group-hover:opacity-100 blur-sm transition-opacity pointer-events-none" }),
+                react_1.default.createElement("span", { className: "relative flex items-center justify-center w-7 h-7 rounded-full border border-[#E8D7A6]/40 bg-[#08121D] group-hover:border-[#00B3A4] group-hover:scale-105 transition-all duration-300 shrink-0" },
+                    react_1.default.createElement(exports.EgyptianSpotIconSvg, { className: "w-5 h-5" })),
+                react_1.default.createElement("span", { className: "relative max-w-0 overflow-hidden group-hover:max-w-[140px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-start text-left whitespace-nowrap" },
+                    react_1.default.createElement("span", { className: "font-mono text-[7.5px] tracking-[0.24em] uppercase text-[#00B3A4] leading-none" }, "Audiovisual"),
+                    react_1.default.createElement("span", { className: "font-editorial text-xs tracking-[0.12em] text-[#E8D7A6] leading-tight mt-0.5" }, "Spot \u00B7 V\u00EDdeo")))),
+        react_1.default.createElement(react_2.AnimatePresence, null, isOpen && (react_1.default.createElement(react_2.motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.35 }, className: "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10 bg-[#050B12]/92 backdrop-blur-xl", role: "dialog", "aria-modal": "true", "aria-label": "Spot Audiovisual \u00B7 Narmer Tarot y Psicoastrolog\u00EDa", onClick: onClose },
+            react_1.default.createElement("div", { className: "absolute inset-0 pointer-events-none", style: {
+                    background: 'radial-gradient(circle at 50% 45%, rgba(42,14,52,0.55) 0%, rgba(0,179,164,0.12) 40%, rgba(5,11,18,0.96) 80%)',
+                } }),
+            react_1.default.createElement(react_2.motion.div, { initial: { opacity: 0, scale: 0.92, y: 18 }, animate: { opacity: 1, scale: 1, y: 0 }, exit: { opacity: 0, scale: 0.94, y: 14 }, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] }, onClick: (e) => e.stopPropagation(), className: "relative z-10 w-full max-w-4xl rounded-2xl border border-[#00B3A4]/50 bg-[#09131F]/95 p-4 sm:p-6 shadow-[0_30px_90px_rgba(0,0,0,0.95),0_0_45px_rgba(0,179,164,0.22)]" },
+                react_1.default.createElement("span", { className: "absolute top-2.5 left-2.5 w-3.5 h-3.5 border-t border-l border-[#E8D7A6]/60 pointer-events-none" }),
+                react_1.default.createElement("span", { className: "absolute top-2.5 right-2.5 w-3.5 h-3.5 border-t border-r border-[#E8D7A6]/60 pointer-events-none" }),
+                react_1.default.createElement("span", { className: "absolute bottom-2.5 left-2.5 w-3.5 h-3.5 border-b border-l border-[#E8D7A6]/60 pointer-events-none" }),
+                react_1.default.createElement("span", { className: "absolute bottom-2.5 right-2.5 w-3.5 h-3.5 border-b border-r border-[#E8D7A6]/60 pointer-events-none" }),
+                react_1.default.createElement("div", { className: "flex items-center justify-between gap-4 pb-4 mb-4 border-b border-[#E8D7A6]/15" },
+                    react_1.default.createElement("div", { className: "flex items-center gap-3 text-left" },
+                        react_1.default.createElement("div", { className: "p-2 rounded-full border border-[#00B3A4]/45 bg-[#1C0A27]" },
+                            react_1.default.createElement(exports.EgyptianSpotIconSvg, { className: "w-5 h-5" })),
+                        react_1.default.createElement("div", null,
+                            react_1.default.createElement("div", { className: "flex items-center gap-1.5 font-mono text-[9px] tracking-[0.28em] uppercase text-[#00B3A4]" },
+                                react_1.default.createElement(lucide_react_1.Sparkles, { className: "w-2.5 h-2.5" }),
+                                react_1.default.createElement("span", null, "Presentaci\u00F3n Audiovisual \u00B7 NARMER")),
+                            react_1.default.createElement("h3", { className: "font-editorial text-lg sm:text-2xl text-[#E8D7A6] tracking-wide leading-tight" }, "Spot Oficial \u00B7 Tarot y Psicoastrolog\u00EDa"))),
+                    react_1.default.createElement("div", { className: "flex items-center gap-2" },
+                        react_1.default.createElement("a", { href: YOUTUBE_WATCH_URL, target: "_blank", rel: "noopener noreferrer", className: "hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E8D7A6]/25 hover:border-[#00B3A4] text-[10px] font-mono tracking-widest uppercase text-[#E8D7A6]/80 hover:text-[#00B3A4] transition-colors", title: "Abrir v\u00EDdeo en YouTube" },
+                            react_1.default.createElement("span", null, "YouTube"),
+                            react_1.default.createElement(lucide_react_1.ExternalLink, { className: "w-3 h-3" })),
+                        react_1.default.createElement("button", { onClick: onClose, className: "p-2 rounded-full border border-[#E8D7A6]/30 hover:border-[#00B3A4] bg-[#160A20] text-[#E8D7A6] hover:text-[#00B3A4] transition-colors", "aria-label": "Cerrar Spot de V\u00EDdeo", title: "Cerrar (Esc)" },
+                            react_1.default.createElement(lucide_react_1.X, { className: "w-4 h-4" })))),
+                react_1.default.createElement("div", { className: "relative w-full aspect-video rounded-xl overflow-hidden border border-[#00B3A4]/35 bg-black shadow-[0_15px_45px_rgba(0,0,0,0.85)]" },
+                    react_1.default.createElement("iframe", { src: YOUTUBE_EMBED_URL, title: "Spot Audiovisual \u00B7 NARMER Tarot y Psicoastrolog\u00EDa", className: "w-full h-full border-0", allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share", allowFullScreen: true })),
+                react_1.default.createElement("div", { className: "mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono text-[#E8D7A6]/65" },
+                    react_1.default.createElement("span", { className: "tracking-[0.18em] uppercase text-[#00B3A4]/90" }, "\u2726 El s\u00EDmbolo como puente entre lo visible y lo invisible"),
+                    react_1.default.createElement("a", { href: YOUTUBE_WATCH_URL, target: "_blank", rel: "noopener noreferrer", className: "sm:hidden inline-flex items-center gap-1.5 text-[#E8D7A6] hover:text-[#00B3A4] underline underline-offset-4" },
+                        react_1.default.createElement("span", null, "Ver directamente en YouTube"),
+                        react_1.default.createElement(lucide_react_1.ExternalLink, { className: "w-3 h-3" })))))))));
+};
+exports.EgyptianVideoSpotModal = EgyptianVideoSpotModal;
 
 };
 // --- src/components/ui/MagneticButton.tsx ---

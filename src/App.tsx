@@ -23,11 +23,13 @@ import { EditorialSectionReveal } from './components/ui/EditorialSectionReveal';
 import { EditorialScrollTimeline } from './components/ui/EditorialScrollTimeline';
 import { AnalogFilmGrainOverlay } from './components/ui/AnalogFilmGrainOverlay';
 import { EgyptianSandCarousel } from './components/ui/EgyptianSandCarousel';
+import { EgyptianVideoSpotModal } from './components/ui/EgyptianVideoSpotModal';
 
 export default function App() {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState('01 · TAROT (60 min)');
   const [galleryCarouselOpen, setGalleryCarouselOpen] = useState(false);
+  const [spotModalOpen, setSpotModalOpen] = useState(false);
 
   const handleOpenBooking = (sessionTitle?: string) => {
     if (sessionTitle) {
@@ -59,6 +61,7 @@ export default function App() {
         <NavbarEditorial
           onOpenBooking={() => handleOpenBooking()}
           onOpenGallery={() => setGalleryCarouselOpen(true)}
+          onOpenSpot={() => setSpotModalOpen(true)}
         />
 
         <main className="relative">
@@ -118,6 +121,13 @@ export default function App() {
           isOpen={galleryCarouselOpen}
           onOpen={() => setGalleryCarouselOpen(true)}
           onClose={() => setGalleryCarouselOpen(false)}
+        />
+
+        {/* Spot Audiovisual Oficial Oculto tras Ícono Egipcio No Invasivo */}
+        <EgyptianVideoSpotModal
+          isOpen={spotModalOpen}
+          onOpen={() => setSpotModalOpen(true)}
+          onClose={() => setSpotModalOpen(false)}
         />
 
         {/* 9. Footer Artístico */}
