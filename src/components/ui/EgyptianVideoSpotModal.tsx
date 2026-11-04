@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ExternalLink, Sparkles } from 'lucide-react';
+import { X, ExternalLink, Sparkles, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 
 /**
  * Ícono Egipcio (Disco Solar Alado & Prisma de Proyección) para activar el Spot de Vídeo
@@ -65,20 +65,57 @@ interface EgyptianVideoSpotModalProps {
   onClose: () => void;
 }
 
-const YOUTUBE_VIDEO_ID = 'NCWwVNCTeDo';
-const YOUTUBE_WATCH_URL = 'https://youtu.be/NCWwVNCTeDo';
-const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&rel=0&modestbranding=1`;
+interface NarmerSpotVideo {
+  id: string;
+  indexLabel: string;
+  title: string;
+  subtitle: string;
+  watchUrl: string;
+  embedUrl: string;
+}
+
+const NARMER_SPOT_VIDEOS: NarmerSpotVideo[] = [
+  {
+    id: 'NCWwVNCTeDo',
+    indexLabel: '01 · SPOT I',
+    title: 'Spot Oficial I · Tarot y Psicoastrología',
+    subtitle: 'El símbolo como puente entre lo visible y lo invisible.',
+    watchUrl: 'https://youtu.be/NCWwVNCTeDo',
+    embedUrl: 'https://www.youtube.com/embed/NCWwVNCTeDo?autoplay=1&rel=0&modestbranding=1',
+  },
+  {
+    id: 'bZzSGMaE7Co',
+    indexLabel: '02 · SPOT II',
+    title: 'Spot Oficial II · Gabinete de Interpretación Simbólica',
+    subtitle: 'Mirar hacia adentro a través de los arcanos y el mapa natal.',
+    watchUrl: 'https://youtu.be/bZzSGMaE7Co',
+    embedUrl: 'https://www.youtube.com/embed/bZzSGMaE7Co?autoplay=1&rel=0&modestbranding=1',
+  },
+];
 
 export const EgyptianVideoSpotModal: React.FC<EgyptianVideoSpotModalProps> = ({
   isOpen,
   onOpen,
   onClose,
 }) => {
-  // Cerrar con tecla Escape
+  const [activeSpotIndex, setActiveSpotIndex] = useState(0);
+  const currentSpot = NARMER_SPOT_VIDEOS[activeSpotIndex] || NARMER_SPOT_VIDEOS[0];
+
+  const handlePrevSpot = () => {
+    setActiveSpotIndex((prev) => (prev - 1 + NARMER_SPOT_VIDEOS.length) % NARMER_SPOT_VIDEOS.length);
+  };
+
+  const handleNextSpot = () => {
+    setActiveSpotIndex((prev) => (prev + 1) % NARMER_SPOT_VIDEOS.length);
+  };
+
+  // Cerrar con tecla Escape y cambiar de vídeo con flechas
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') handlePrevSpot();
+      if (e.key === 'ArrowRight') handleNextSpot();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -90,8 +127,8 @@ export const EgyptianVideoSpotModal: React.FC<EgyptianVideoSpotModalProps> = ({
       <div className="fixed bottom-20 left-6 z-40">
         <button
           onClick={() => (isOpen ? onClose() : onOpen())}
-          aria-label="Reproducir Spot Audiovisual de Narmer"
-          title="Ver Spot Audiovisual · NARMER"
+          aria-label="Reproducir Spots Audiovisuales de Narmer"
+          title="Ver Spots Audiovisuales · NARMER (2 Vídeos)"
           className="group relative flex items-center gap-0 hover:gap-2.5 p-2.5 sm:px-3 sm:py-2.5 rounded-full border border-[#E8D7A6]/45 hover:border-[#00B3A4] bg-[#0D1B2A]/90 hover:bg-[#1E0B28]/95 backdrop-blur-md text-[#E8D7A6] shadow-[0_10px_28px_rgba(0,0,0,0.75),0_0_16px_rgba(232,215,166,0.18)] hover:shadow-[0_10px_32px_rgba(0,0,0,0.85),0_0_24px_rgba(0,179,164,0.4)] transition-all duration-400"
         >
           {/* Halo pulsante sutil */}
@@ -102,18 +139,18 @@ export const EgyptianVideoSpotModal: React.FC<EgyptianVideoSpotModalProps> = ({
           </span>
 
           {/* Etiqueta oculta que se revela suavemente al pasar el cursor para no ser invasiva */}
-          <span className="relative max-w-0 overflow-hidden group-hover:max-w-[140px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-start text-left whitespace-nowrap">
+          <span className="relative max-w-0 overflow-hidden group-hover:max-w-[155px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-start text-left whitespace-nowrap">
             <span className="font-mono text-[7.5px] tracking-[0.24em] uppercase text-[#00B3A4] leading-none">
-              Audiovisual
+              Audiovisual · 02
             </span>
             <span className="font-editorial text-xs tracking-[0.12em] text-[#E8D7A6] leading-tight mt-0.5">
-              Spot · Vídeo
+              Spots · Vídeo
             </span>
           </span>
         </button>
       </div>
 
-      {/* Modal Cinematográfico del Spot */}
+      {/* Modal Cinematográfico de los Spots */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -121,10 +158,10 @@ export const EgyptianVideoSpotModal: React.FC<EgyptianVideoSpotModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10 bg-[#050B12]/92 backdrop-blur-xl"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10 bg-[#050B12]/92 backdrop-blur-xl overflow-y-auto"
             role="dialog"
             aria-modal="true"
-            aria-label="Spot Audiovisual · Narmer Tarot y Psicoastrología"
+            aria-label="Spots Audiovisuales · Narmer Tarot y Psicoastrología"
             onClick={onClose}
           >
             {/* Resplandor astral de fondo */}
@@ -143,7 +180,7 @@ export const EgyptianVideoSpotModal: React.FC<EgyptianVideoSpotModalProps> = ({
               exit={{ opacity: 0, scale: 0.94, y: 14 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               onClick={(e: React.MouseEvent) => e.stopPropagation()}
-              className="relative z-10 w-full max-w-4xl rounded-2xl border border-[#00B3A4]/50 bg-[#09131F]/95 p-4 sm:p-6 shadow-[0_30px_90px_rgba(0,0,0,0.95),0_0_45px_rgba(0,179,164,0.22)]"
+              className="relative z-10 w-full max-w-4xl rounded-2xl border border-[#00B3A4]/50 bg-[#09131F]/95 p-4 sm:p-6 shadow-[0_30px_90px_rgba(0,0,0,0.95),0_0_45px_rgba(0,179,164,0.22)] my-auto"
             >
               {/* Ornamentos esquineros dorados */}
               <span className="absolute top-2.5 left-2.5 w-3.5 h-3.5 border-t border-l border-[#E8D7A6]/60 pointer-events-none" />
@@ -152,29 +189,50 @@ export const EgyptianVideoSpotModal: React.FC<EgyptianVideoSpotModalProps> = ({
               <span className="absolute bottom-2.5 right-2.5 w-3.5 h-3.5 border-b border-r border-[#E8D7A6]/60 pointer-events-none" />
 
               {/* Cabecera del Modal */}
-              <div className="flex items-center justify-between gap-4 pb-4 mb-4 border-b border-[#E8D7A6]/15">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-[#E8D7A6]/15">
                 <div className="flex items-center gap-3 text-left">
-                  <div className="p-2 rounded-full border border-[#00B3A4]/45 bg-[#1C0A27]">
+                  <div className="p-2 rounded-full border border-[#00B3A4]/45 bg-[#1C0A27] shrink-0">
                     <EgyptianSpotIconSvg className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 font-mono text-[9px] tracking-[0.28em] uppercase text-[#00B3A4]">
                       <Sparkles className="w-2.5 h-2.5" />
-                      <span>Presentación Audiovisual · NARMER</span>
+                      <span>Presentación Audiovisual · {currentSpot.indexLabel}</span>
                     </div>
                     <h3 className="font-editorial text-lg sm:text-2xl text-[#E8D7A6] tracking-wide leading-tight">
-                      Spot Oficial · Tarot y Psicoastrología
+                      {currentSpot.title}
                     </h3>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between sm:justify-end gap-2">
+                  {/* Selector entre Spot I y Spot II */}
+                  <div className="flex items-center gap-1.5 p-1 rounded-full border border-[#E8D7A6]/20 bg-[#050B12]/90">
+                    {NARMER_SPOT_VIDEOS.map((spot, idx) => {
+                      const isActive = idx === activeSpotIndex;
+                      return (
+                        <button
+                          key={spot.id}
+                          onClick={() => setActiveSpotIndex(idx)}
+                          className={`px-3 py-1 rounded-full font-mono text-[10px] tracking-[0.16em] uppercase transition-all flex items-center gap-1.5 ${
+                            isActive
+                              ? 'bg-[#2A0E34] text-[#E8D7A6] border border-[#00B3A4] shadow-[0_0_12px_rgba(0,179,164,0.35)]'
+                              : 'text-[#E8D7A6]/60 hover:text-[#00B3A4]'
+                          }`}
+                        >
+                          <Play className="w-2.5 h-2.5 fill-current" />
+                          <span>Spot {idx + 1}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   <a
-                    href={YOUTUBE_WATCH_URL}
+                    href={currentSpot.watchUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E8D7A6]/25 hover:border-[#00B3A4] text-[10px] font-mono tracking-widest uppercase text-[#E8D7A6]/80 hover:text-[#00B3A4] transition-colors"
-                    title="Abrir vídeo en YouTube"
+                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E8D7A6]/25 hover:border-[#00B3A4] text-[10px] font-mono tracking-widest uppercase text-[#E8D7A6]/80 hover:text-[#00B3A4] transition-colors"
+                    title="Abrir vídeo actual en YouTube"
                   >
                     <span>YouTube</span>
                     <ExternalLink className="w-3 h-3" />
@@ -191,31 +249,61 @@ export const EgyptianVideoSpotModal: React.FC<EgyptianVideoSpotModalProps> = ({
                 </div>
               </div>
 
-              {/* Marco 16:9 del Vídeo */}
+              {/* Marco 16:9 del Vídeo Activo */}
               <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[#00B3A4]/35 bg-black shadow-[0_15px_45px_rgba(0,0,0,0.85)]">
                 <iframe
-                  src={YOUTUBE_EMBED_URL}
-                  title="Spot Audiovisual · NARMER Tarot y Psicoastrología"
+                  key={currentSpot.id}
+                  src={currentSpot.embedUrl}
+                  title={currentSpot.title}
                   className="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 />
               </div>
 
-              {/* Pie editorial del modal */}
-              <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono text-[#E8D7A6]/65">
-                <span className="tracking-[0.18em] uppercase text-[#00B3A4]/90">
-                  ✦ El símbolo como puente entre lo visible y lo invisible
+              {/* Pie editorial del modal con enlaces directos a ambos vídeos y navegación */}
+              <div className="mt-4 pt-3 border-t border-[#E8D7A6]/15 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono text-[#E8D7A6]/70">
+                <span className="tracking-[0.14em] text-[#00B3A4]/90 text-center sm:text-left">
+                  ✦ {currentSpot.subtitle}
                 </span>
-                <a
-                  href={YOUTUBE_WATCH_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="sm:hidden inline-flex items-center gap-1.5 text-[#E8D7A6] hover:text-[#00B3A4] underline underline-offset-4"
-                >
-                  <span>Ver directamente en YouTube</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+
+                <div className="flex flex-wrap items-center justify-center gap-2.5">
+                  {NARMER_SPOT_VIDEOS.map((spot, idx) => (
+                    <a
+                      key={spot.id}
+                      href={spot.watchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded border text-[10px] tracking-wider uppercase transition-colors ${
+                        idx === activeSpotIndex
+                          ? 'border-[#00B3A4]/60 bg-[#2A0E34]/50 text-[#E8D7A6] hover:border-[#00B3A4]'
+                          : 'border-[#E8D7A6]/20 bg-[#08121D] text-[#E8D7A6]/65 hover:text-[#00B3A4] hover:border-[#00B3A4]/50'
+                      }`}
+                    >
+                      <span>Link Vídeo {idx + 1}</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  ))}
+
+                  <div className="flex items-center gap-1 ml-1">
+                    <button
+                      onClick={handlePrevSpot}
+                      className="p-1.5 rounded-full border border-[#E8D7A6]/25 hover:border-[#00B3A4] text-[#E8D7A6] hover:text-[#00B3A4] transition-colors"
+                      title="Vídeo anterior"
+                      aria-label="Vídeo anterior"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={handleNextSpot}
+                      className="p-1.5 rounded-full border border-[#E8D7A6]/25 hover:border-[#00B3A4] text-[#E8D7A6] hover:text-[#00B3A4] transition-colors"
+                      title="Siguiente vídeo"
+                      aria-label="Siguiente vídeo"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -224,4 +312,3 @@ export const EgyptianVideoSpotModal: React.FC<EgyptianVideoSpotModalProps> = ({
     </>
   );
 };
-
