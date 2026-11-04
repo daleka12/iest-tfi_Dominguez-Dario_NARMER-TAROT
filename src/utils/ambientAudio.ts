@@ -1,20 +1,22 @@
-// Atmospheric procedural audio synthesizer using Web Audio API
-// Generates soft wind gusts (pink noise + LFO filter), distant bell chimes (modal synthesis), and warm harmonic drone
+// Motor de audio atmosférico NARMER:
+// 1. Reproduce en bucle continuo la pista musical de fondo (./cards/atmosfera-narmer.mp3)
+// 2. Conserva las texturas opcionales de viento/ambiente y la campana ceremonial de 432 Hz
+// 3. La campana suena con alta potencia y presencia directa (incluso si el fondo está en pausa)
+
 export type SoundscapeType = 'nocturno' | 'viento' | 'campanas';
+
+const BG_MUSIC_SRC = './cards/atmosfera-narmer.mp3';
 
 class AtmosphericAudioEngine {
   private ctx: AudioContext | null = null;
+  private bgAudio: HTMLAudioElement | null = null;
   private isPlaying: boolean = false;
-  private currentVolume: number = 0.5;
+  private currentVolume: number = 0.65;
   private currentMode: SoundscapeType = 'nocturno';
+  private userManuallyStopped: boolean = false;
 
-  // Master nodes
+  // Master nodes for subtle wind/texture accompaniment
   private masterGain: GainNode | null = null;
-
-  // Drone nodes
-  private droneOsc1: OscillatorNode | null = null;
-  private droneOsc2: OscillatorNode | null = null;
-  private droneGain: GainNode | null = null;
 
   // Wind nodes
   private windSource: AudioBufferSourceNode | null = null;
@@ -28,6 +30,66 @@ class AtmosphericAudioEngine {
 
   // State change callbacks
   private listeners: Set<(isPlaying: boolean, volume: number, mode: SoundscapeType) => void> = new Set();
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.setupAutoStartOnInteraction();
+    }
+  }
+
+  private getBgAudio(): HTMLAudioElement | null {
+    if (!this.bgAudio && typeof window !== 'undefined') {
+      const audio = new Audio(BG_MUSIC_SRC);
+      audio.loop = true;
+      audio.preload = 'auto';
+      audio.volume = this.currentVolume;
+      this.bgAudio = audio;
+    }
+    return this.bgAudio;
+  }
+
+  /**
+   * Inicia la música en bucle automáticamente (o en el primer gesto del usuario si el navegador exige interacción previa)
+   */
+  private setupAutoStartOnInteraction() {
+    const tryAutoPlay = () => {
+      if (this.userManuallyStopped || this.isPlaying) return;
+      const audio = this.getBgAudio();
+      if (!audio) return;
+      audio.volume = this.currentVolume;
+      audio
+        .play()
+        .then(() => {
+          if (!this.isPlaying) {
+            this.startSynthLayer();
+            this.isPlaying = true;
+            this.notify();
+          }
+          cleanupListeners();
+        })
+        .catch(() => {
+          // El navegador espera el primer clic/tecla del usuario
+        });
+    };
+
+    const onFirstGesture = () => {
+      if (!this.userManuallyStopped && !this.isPlaying) {
+        this.start();
+      }
+      cleanupListeners();
+    };
+
+    const cleanupListeners = () => {
+      window.removeEventListener('pointerdown', onFirstGesture);
+      window.removeEventListener('keydown', onFirstGesture);
+    };
+
+    window.addEventListener('pointerdown', onFirstGesture, { once: true, passive: true });
+    window.addEventListener('keydown', onFirstGesture, { once: true, passive: true });
+
+    // Intentar reproducción directa al cargar
+    setTimeout(tryAutoPlay, 350);
+  }
 
   public subscribe(cb: (isPlaying: boolean, volume: number, mode: SoundscapeType) => void) {
     this.listeners.add(cb);
@@ -53,8 +115,11 @@ class AtmosphericAudioEngine {
 
   public setVolume(val: number) {
     this.currentVolume = Math.max(0, Math.min(1, val));
+    if (this.bgAudio) {
+      this.bgAudio.volume = this.currentVolume;
+    }
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setTargetAtTime(this.currentVolume * 0.15, this.ctx.currentTime, 0.1);
+      this.masterGain.gain.setTargetAtTime(this.currentVolume * 0.12, this.ctx.currentTime, 0.1);
     }
     this.notify();
   }
@@ -77,9 +142,11 @@ class AtmosphericAudioEngine {
 
   public toggle(): boolean {
     if (this.isPlaying) {
+      this.userManuallyStopped = true;
       this.stop();
       return false;
     } else {
+      this.userManuallyStopped = false;
       this.start();
       return true;
     }
@@ -89,7 +156,6 @@ class AtmosphericAudioEngine {
     return this.isPlaying;
   }
 
-  // Generates 5 seconds of pink noise for natural wind simulation
   private createPinkNoiseBuffer(ctx: AudioContext): AudioBuffer {
     const bufferSize = ctx.sampleRate * 5;
     const buffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate);
@@ -106,14 +172,14 @@ class AtmosphericAudioEngine {
         b3 = 0.86650 * b3 + white * 0.3104856;
         b4 = 0.55000 * b4 + white * 0.5329522;
         b5 = -0.7616 * b5 - white * 0.0168980;
-        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.06;
+        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.05;
         b6 = white * 0.115926;
       }
     }
     return buffer;
   }
 
-  public start() {
+  private startSynthLayer() {
     const ctx = this.getAudioContext();
     if (!ctx) return;
 
@@ -121,40 +187,25 @@ class AtmosphericAudioEngine {
       ctx.resume();
     }
 
-    // Master Gain
+    // Limpiar capa previa si existía
+    try {
+      if (this.windSource) {
+        this.windSource.stop();
+        this.windSource.disconnect();
+      }
+      if (this.windLfo) {
+        this.windLfo.stop();
+        this.windLfo.disconnect();
+      }
+    } catch {
+      // Ignorar
+    }
+
     this.masterGain = ctx.createGain();
-    this.masterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    this.masterGain.gain.exponentialRampToValueAtTime(
-      Math.max(0.001, this.currentVolume * 0.15),
-      ctx.currentTime + 2.5
-    );
+    this.masterGain.gain.setValueAtTime(Math.max(0.001, this.currentVolume * 0.12), ctx.currentTime);
     this.masterGain.connect(ctx.destination);
 
-    // 1. Warm Sub-Harmonic Drone (108 Hz & 162 Hz)
-    this.droneGain = ctx.createGain();
-    this.droneGain.gain.value = 0.28;
-
-    this.droneOsc1 = ctx.createOscillator();
-    this.droneOsc1.type = 'sine';
-    this.droneOsc1.frequency.setValueAtTime(108, ctx.currentTime);
-
-    this.droneOsc2 = ctx.createOscillator();
-    this.droneOsc2.type = 'triangle';
-    this.droneOsc2.frequency.setValueAtTime(162, ctx.currentTime);
-
-    const droneFilter = ctx.createBiquadFilter();
-    droneFilter.type = 'lowpass';
-    droneFilter.frequency.setValueAtTime(260, ctx.currentTime);
-
-    this.droneOsc1.connect(this.droneGain);
-    this.droneOsc2.connect(this.droneGain);
-    this.droneGain.connect(droneFilter);
-    droneFilter.connect(this.masterGain);
-
-    this.droneOsc1.start();
-    this.droneOsc2.start();
-
-    // 2. Wind Breeze Generator (Pink noise with resonant modulated filter)
+    // Brisa sutil para acompañar la música de fondo según el modo
     const noiseBuffer = this.createPinkNoiseBuffer(ctx);
     this.windSource = ctx.createBufferSource();
     this.windSource.buffer = noiseBuffer;
@@ -165,19 +216,18 @@ class AtmosphericAudioEngine {
     this.windFilter.frequency.setValueAtTime(380, ctx.currentTime);
     this.windFilter.Q.setValueAtTime(2.2, ctx.currentTime);
 
-    // Slow LFO simulating gusts of wind (0.12 Hz)
     this.windLfo = ctx.createOscillator();
     this.windLfo.type = 'sine';
     this.windLfo.frequency.setValueAtTime(0.12, ctx.currentTime);
 
     this.windLfoGain = ctx.createGain();
-    this.windLfoGain.gain.setValueAtTime(180, ctx.currentTime); // Filter modulation range
+    this.windLfoGain.gain.setValueAtTime(180, ctx.currentTime);
 
     this.windLfo.connect(this.windLfoGain);
     this.windLfoGain.connect(this.windFilter.frequency);
 
     this.windGain = ctx.createGain();
-    this.windGain.gain.setValueAtTime(0.35, ctx.currentTime);
+    this.windGain.gain.setValueAtTime(0.15, ctx.currentTime);
 
     this.windSource.connect(this.windFilter);
     this.windFilter.connect(this.windGain);
@@ -186,12 +236,23 @@ class AtmosphericAudioEngine {
     this.windSource.start();
     this.windLfo.start();
 
-    // Apply specific preset balance
     this.applyModeSettings();
-
-    // 3. Distant Chimes Interval (Procedural atmospheric strikes)
-    this.triggerDistantChime();
     this.scheduleNextChime();
+  }
+
+  public start() {
+    // 1. Iniciar reproducción en bucle del archivo MP3 adjunto
+    const audio = this.getBgAudio();
+    if (audio) {
+      audio.loop = true;
+      audio.volume = this.currentVolume;
+      audio.play().catch(() => {
+        // Si el navegador requiere otro gesto
+      });
+    }
+
+    // 2. Iniciar capa atmosférica y temporizador de campanas
+    this.startSynthLayer();
 
     this.isPlaying = true;
     this.notify();
@@ -202,93 +263,106 @@ class AtmosphericAudioEngine {
     const now = this.ctx.currentTime;
 
     if (this.currentMode === 'viento') {
-      if (this.droneGain) this.droneGain.gain.setTargetAtTime(0.08, now, 1);
-      if (this.windGain) this.windGain.gain.setTargetAtTime(0.65, now, 1);
+      if (this.windGain) this.windGain.gain.setTargetAtTime(0.55, now, 0.8);
     } else if (this.currentMode === 'campanas') {
-      if (this.droneGain) this.droneGain.gain.setTargetAtTime(0.15, now, 1);
-      if (this.windGain) this.windGain.gain.setTargetAtTime(0.12, now, 1);
+      if (this.windGain) this.windGain.gain.setTargetAtTime(0.05, now, 0.8);
     } else {
-      // 'nocturno' (Balanced)
-      if (this.droneGain) this.droneGain.gain.setTargetAtTime(0.28, now, 1);
-      if (this.windGain) this.windGain.gain.setTargetAtTime(0.35, now, 1);
+      // 'nocturno' (Música principal en bucle + brisa muy suave)
+      if (this.windGain) this.windGain.gain.setTargetAtTime(0.15, now, 0.8);
     }
   }
 
   private scheduleNextChime() {
     if (this.chimeTimer) window.clearTimeout(this.chimeTimer);
-    // Interval between 10s and 22s
-    const nextInterval = 10000 + Math.random() * 12000;
+    const nextInterval = 14000 + Math.random() * 14000;
     this.chimeTimer = window.setTimeout(() => {
       if (this.isPlaying) {
-        this.triggerDistantChime();
+        this.triggerDistantChime(1.0);
         this.scheduleNextChime();
       }
     }, nextInterval);
   }
 
-  // Synthesizes a delicate resonant bell strike with rich natural partials
+  /**
+   * Campana ceremonial de alta potencia (432 Hz / armónicos tibetanos).
+   * Se conecta directamente a la salida principal con un compresor dinámico
+   * para que suene MUY FUERTE, clara y profunda tanto al pulsar el botón como en el ciclo.
+   */
   public triggerDistantChime(pitchMultiplier: number = 1) {
     const ctx = this.getAudioContext();
-    if (!ctx || !this.masterGain) return;
+    if (!ctx) return;
 
-    const baseFrequencies = [432, 540, 648, 864];
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+    const baseFrequencies = [432, 528, 648, 864];
     const fundamental =
       baseFrequencies[Math.floor(Math.random() * baseFrequencies.length)] * pitchMultiplier;
 
-    // Harmonic partial ratios typical of tuned Tibetan singing bowls / temple chimes
-    const partials = [
-      { ratio: 1.0, amp: 1.0, decay: 5.2 },
-      { ratio: 2.76, amp: 0.45, decay: 4.1 },
-      { ratio: 4.07, amp: 0.22, decay: 3.2 },
-      { ratio: 5.43, amp: 0.12, decay: 2.0 },
-    ];
+    // Compresor/limitador dedicado para lograr un golpe de campana potente, lleno y sin distorsión
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.setValueAtTime(-10, now);
+    compressor.knee.setValueAtTime(6, now);
+    compressor.ratio.setValueAtTime(3, now);
+    compressor.attack.setValueAtTime(0.002, now);
+    compressor.release.setValueAtTime(0.25, now);
+    compressor.connect(ctx.destination);
 
+    // Ganancia directa de la campana: muy fuerte (0.95 de amplitud máxima)
     const chimeMixer = ctx.createGain();
-    chimeMixer.gain.setValueAtTime(0.0001, ctx.currentTime);
-    chimeMixer.gain.linearRampToValueAtTime(0.16, ctx.currentTime + 0.04);
-    chimeMixer.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 5.5);
-    chimeMixer.connect(this.masterGain);
+    const bellVolume = Math.max(0.85, this.currentVolume);
+    chimeMixer.gain.setValueAtTime(0.001, now);
+    chimeMixer.gain.linearRampToValueAtTime(0.95 * bellVolume, now + 0.015);
+    chimeMixer.gain.exponentialRampToValueAtTime(0.0008, now + 6.5);
+    chimeMixer.connect(compressor);
+
+    // Armónicos ricos de campana de bronce / cuenco tibetano grande
+    const partials = [
+      { ratio: 0.5, amp: 0.55, decay: 6.2, type: 'sine' as OscillatorType },      // Sub-octava profunda de bronce
+      { ratio: 1.0, amp: 1.0, decay: 5.8, type: 'sine' as OscillatorType },       // Fundamental 432 Hz potente
+      { ratio: 1.5, amp: 0.45, decay: 4.5, type: 'triangle' as OscillatorType },  // Quinta resonante
+      { ratio: 2.0, amp: 0.6, decay: 4.2, type: 'sine' as OscillatorType },       // Octava brillante
+      { ratio: 2.76, amp: 0.5, decay: 3.4, type: 'sine' as OscillatorType },      // Parcial metálico de campana
+      { ratio: 4.07, amp: 0.35, decay: 2.6, type: 'sine' as OscillatorType },     // Brillo cristalino superior
+      { ratio: 5.43, amp: 0.22, decay: 1.8, type: 'sine' as OscillatorType },     // Ataque metálico inicial
+    ];
 
     partials.forEach((p) => {
       const osc = ctx.createOscillator();
       const pGain = ctx.createGain();
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(fundamental * p.ratio, ctx.currentTime);
+      osc.type = p.type;
+      osc.frequency.setValueAtTime(fundamental * p.ratio, now);
 
-      pGain.gain.setValueAtTime(p.amp, ctx.currentTime);
-      pGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + p.decay);
+      pGain.gain.setValueAtTime(p.amp, now);
+      pGain.gain.exponentialRampToValueAtTime(0.001, now + p.decay);
 
       osc.connect(pGain);
       pGain.connect(chimeMixer);
 
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + p.decay + 0.5);
+      osc.start(now);
+      osc.stop(now + p.decay + 0.4);
     });
   }
 
   public stop() {
-    if (!this.ctx || !this.masterGain) return;
-
-    this.masterGain.gain.linearRampToValueAtTime(0.0001, this.ctx.currentTime + 1.4);
+    if (this.bgAudio) {
+      this.bgAudio.pause();
+    }
 
     if (this.chimeTimer) {
       window.clearTimeout(this.chimeTimer);
       this.chimeTimer = null;
     }
 
+    if (this.ctx && this.masterGain) {
+      this.masterGain.gain.linearRampToValueAtTime(0.0001, this.ctx.currentTime + 0.6);
+    }
+
     setTimeout(() => {
       try {
-        if (this.droneOsc1) {
-          this.droneOsc1.stop();
-          this.droneOsc1.disconnect();
-          this.droneOsc1 = null;
-        }
-        if (this.droneOsc2) {
-          this.droneOsc2.stop();
-          this.droneOsc2.disconnect();
-          this.droneOsc2 = null;
-        }
         if (this.windSource) {
           this.windSource.stop();
           this.windSource.disconnect();
@@ -299,12 +373,12 @@ class AtmosphericAudioEngine {
           this.windLfo.disconnect();
           this.windLfo = null;
         }
-      } catch (err) {
-        // Safe cleanup
+      } catch {
+        // Ignorar errores de limpieza
       }
       this.isPlaying = false;
       this.notify();
-    }, 1500);
+    }, 650);
   }
 }
 
